@@ -322,8 +322,20 @@ class Utility_slash(commands.Cog):
 
     @app_commands.command(name="say", description="Envoie un message dans un salon")
     @app_commands.describe(channel="Le salon où envoyer le message", message="Le message à envoyer")
+    @app_commands.default_permissions(manage_messages=True)
     async def say_channel(self, interaction: discord.Interaction, channel: discord.TextChannel, message: str):
         """Envoie un message dans un salon"""
+        # Vérifier que l'utilisateur a les permissions nécessaires
+        if not interaction.user.guild_permissions.manage_messages and not interaction.user.guild_permissions.administrator:
+            await interaction.response.send_message("Vous n'avez pas la permission d'utiliser cette commande. (Permission requise: Gérer les messages)", ephemeral=True)
+            return
+        
+        # Vérifier que le bot peut envoyer des messages dans le salon
+        bot_member = interaction.guild.get_member(self.client.user.id)
+        if not channel.permissions_for(bot_member).send_messages:
+            await interaction.response.send_message(f"Le bot n'a pas la permission d'envoyer des messages dans {channel.mention}.", ephemeral=True)
+            return
+        
         await interaction.response.defer(ephemeral=False)
         
         try:
@@ -332,6 +344,16 @@ class Utility_slash(commands.Cog):
             embed.set_author(name=f"Demandé par {interaction.user.name}", icon_url=interaction.user.avatar)
             embed.set_footer(text=get_current_version(self.client))
             await interaction.followup.send(embed=embed, ephemeral=False)
+        except discord.Forbidden:
+            embed = discord.Embed(title="Erreur", description=f"Le bot n'a pas la permission d'envoyer des messages dans {channel.mention}.", color=discord.Color.red())
+            embed.set_author(name=f"Demandé par {interaction.user.name}", icon_url=interaction.user.avatar)
+            embed.set_footer(text=get_current_version(self.client))
+            await interaction.followup.send(embed=embed, ephemeral=True)
+        except discord.HTTPException as e:
+            embed = discord.Embed(title="Erreur", description=f"Erreur HTTP lors de l'envoi du message: {str(e)}", color=discord.Color.red())
+            embed.set_author(name=f"Demandé par {interaction.user.name}", icon_url=interaction.user.avatar)
+            embed.set_footer(text=get_current_version(self.client))
+            await interaction.followup.send(embed=embed, ephemeral=True)
         except Exception as e:
             embed = discord.Embed(title="Erreur", description=f"Impossible d'envoyer le message: {str(e)}", color=discord.Color.red())
             embed.set_author(name=f"Demandé par {interaction.user.name}", icon_url=interaction.user.avatar)

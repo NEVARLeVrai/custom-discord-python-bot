@@ -6,42 +6,42 @@ import asyncio
 from cogs import Help
 from cogs.Help import get_current_version
 
+async def async_is_owner_check(client, user: discord.User) -> bool:
+    """Vérification async complète du propriétaire"""
+    # Méthode 1: Utiliser la méthode native de discord.py
+    try:
+        if await client.is_owner(user):
+            return True
+    except:
+        pass
+    
+    # Méthode 2: Vérifier via application_info (pour les bots en équipe)
+    try:
+        app_info = await client.application_info()
+        if isinstance(app_info.owner, discord.Team):
+            # Si le bot appartient à une équipe, vérifier si l'utilisateur est dans l'équipe
+            return user.id in [member.id for member in app_info.owner.members]
+        else:
+            # Si c'est un propriétaire unique
+            return user.id == app_info.owner.id
+    except:
+        pass
+    
+    # Méthode 3: Vérifier via l'ID dans la config (fallback)
+    if hasattr(client, 'config') and 'target_user_id' in client.config:
+        return user.id == client.config['target_user_id']
+    
+    return False
+
 class Owner_slash(commands.Cog):
     def __init__(self, client):
         self.client = client
-
-    async def is_owner(self, interaction: discord.Interaction):
-        """Vérifie si l'utilisateur est le propriétaire"""
-        # Méthode 1: Utiliser la méthode native de discord.py
-        try:
-            if await self.client.is_owner(interaction.user):
-                return True
-        except:
-            pass
-        
-        # Méthode 2: Vérifier via application_info (pour les bots en équipe)
-        try:
-            app_info = await self.client.application_info()
-            if isinstance(app_info.owner, discord.Team):
-                # Si le bot appartient à une équipe, vérifier si l'utilisateur est dans l'équipe
-                return interaction.user.id in [member.id for member in app_info.owner.members]
-            else:
-                # Si c'est un propriétaire unique
-                return interaction.user.id == app_info.owner.id
-        except:
-            pass
-        
-        # Méthode 3: Vérifier via l'ID dans la config (fallback)
-        if hasattr(self.client, 'config') and 'target_user_id' in self.client.config:
-            return interaction.user.id == self.client.config['target_user_id']
-        
-        return False
 
     @app_commands.command(name="stop", description="Arrête le bot (owner only)")
     async def stop(self, interaction: discord.Interaction):
         """Arrête le bot"""
         # Vérifier si l'utilisateur est le propriétaire
-        if not await self.is_owner(interaction):
+        if not await async_is_owner_check(self.client, interaction.user):
             await interaction.response.send_message("Cette commande est réservée au propriétaire du bot.", ephemeral=True)
             return
         
@@ -63,7 +63,7 @@ class Owner_slash(commands.Cog):
     async def sync_commands(self, interaction: discord.Interaction):
         """Re-synchronise les commandes slash"""
         # Vérifier si l'utilisateur est le propriétaire
-        if not await self.is_owner(interaction):
+        if not await async_is_owner_check(self.client, interaction.user):
             await interaction.response.send_message("Cette commande est réservée au propriétaire du bot.", ephemeral=True)
             return
         
@@ -120,7 +120,7 @@ class Owner_slash(commands.Cog):
     async def slash_info(self, interaction: discord.Interaction):
         """Affiche des informations de diagnostic sur les commandes slash"""
         # Vérifier si l'utilisateur est le propriétaire
-        if not await self.is_owner(interaction):
+        if not await async_is_owner_check(self.client, interaction.user):
             await interaction.response.send_message("Cette commande est réservée au propriétaire du bot.", ephemeral=True)
             return
         
@@ -166,7 +166,7 @@ class Owner_slash(commands.Cog):
     async def clear_slash_commands(self, interaction: discord.Interaction):
         """Efface toutes les commandes slash de Discord"""
         # Vérifier si l'utilisateur est le propriétaire
-        if not await self.is_owner(interaction):
+        if not await async_is_owner_check(self.client, interaction.user):
             await interaction.response.send_message("Cette commande est réservée au propriétaire du bot.", ephemeral=True)
             return
         

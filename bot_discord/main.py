@@ -134,8 +134,23 @@ async def load():
 
 @tasks.loop(seconds=7)
 async def change_activity():
-    activity = next(activities)
-    await client.change_presence(activity=activity)
+    # Vérifier que le bot est connecté et que la connexion WebSocket est stable
+    if not client.is_ready() or client.is_closed():
+        return
+    
+    # Vérifier que la connexion WebSocket existe
+    if not hasattr(client, 'ws') or client.ws is None:
+        return
+    
+    try:
+        activity = next(activities)
+        await client.change_presence(activity=activity)
+    except (discord.errors.ConnectionClosed, aiohttp.client_exceptions.ClientConnectionResetError, AttributeError):
+        # La connexion est en train de se fermer ou de se reconnecter, on ignore l'erreur
+        pass
+    except Exception as e:
+        # Autres erreurs inattendues - on les log mais on continue
+        print(f"Erreur lors du changement d'activité: {e}")
    
 # Enregistrer les gestionnaires d'erreurs depuis le cog ErrorHandler
 # Note: on_command_error fonctionne avec @commands.Cog.listener() dans le cog
