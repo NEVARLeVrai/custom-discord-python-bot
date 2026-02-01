@@ -40,7 +40,7 @@ PATHS = {
 
 # Configuration centralisée
 CONFIG = {
-    'webhook_url': "https://discord.com/api/webhooks/1433124903397359673/FTyJEbBq0cxVGx_kwaws1D5WRhPVq5MnQgko4ZqbZMqOa6DJoYbZOwpOVkXiV8oFYIQl",
+    'webhook_url': "https://discord.com/api/webhooks/1447012804182933645/XTNFKEgrdDIEXGjOsylgsh4DisblEz2VKxL3JVJcza9bnyuhjsjxi1xnsP08fPNKCqKK",
     'target_user_id': 745923070736465940,
 }
 

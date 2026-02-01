@@ -13,8 +13,6 @@ class Utility_auto(commands.Cog):
         if message.author.bot:
             return  # Ignorer les messages des bots
         
-        if 'tiktok.com' in message.content:
-            await self.process_tiktok_message(message)
         elif 'instagram.com' in message.content:
             await self.process_instagram_message(message)
         elif 'twitter.com' in message.content:
@@ -24,50 +22,6 @@ class Utility_auto(commands.Cog):
         elif 'reddit.com' in message.content or 'redd.it' in message.content:
             await self.process_reddit_message(message)
 
-    async def get_tiktok_final_url(self, url):
-        """Suit les redirections TikTok pour récupérer le lien PC final"""
-        try:
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-            }
-            timeout = aiohttp.ClientTimeout(total=10)
-            async with aiohttp.ClientSession(timeout=timeout, headers=headers) as session:
-                # Essayer d'abord avec HEAD (plus rapide)
-                try:
-                    async with session.head(url, allow_redirects=True) as response:
-                        final_url = str(response.url)
-                        return final_url
-                except:
-                    # Si HEAD échoue, essayer avec GET
-                    async with session.get(url, allow_redirects=True) as response:
-                        final_url = str(response.url)
-                        return final_url
-        except Exception as e:
-            print(f"Erreur lors de la résolution de l'URL TikTok: {e}")
-            return None
-
-    async def process_tiktok_message(self, message):
-        tiktok_link = re.search(r'(https?://(?:\S+\.)?tiktok\.com/\S+)', message.content)
-        if tiktok_link:
-            original_link = tiktok_link.group(0)
-            # Supprimer les paramètres de requête (tout ce qui vient après ?)
-            original_link = original_link.split('?')[0]
-            
-            # Si c'est un lien court (vm.tiktok.com), suivre la redirection pour récupérer le lien PC
-            if 'vm.tiktok.com' in original_link:
-                final_url = await self.get_tiktok_final_url(original_link)
-                if final_url:
-                    original_link = final_url
-                    # Supprimer les paramètres de requête du lien final aussi
-                    original_link = original_link.split('?')[0]
-            
-            # Initialiser modified_link
-            modified_link = original_link
-            # Supprimer le préfixe "www." si présent
-            modified_link = modified_link.replace('www.tiktok.com', 'tiktok.com')
-            # Remplacer tiktok.com par tiktokez.com
-            modified_link = modified_link.replace('tiktok.com', 'tiktokez.com')
-            await self.send_modified_message(message, modified_link, "TikTok")
 
     async def process_instagram_message(self, message):
         instagram_link = re.search(r'(https?://(?:www\.)?instagram\.com/\S+)', message.content)
@@ -128,7 +82,7 @@ class Utility_auto(commands.Cog):
             # Supprimer les paramètres de requête (tout ce qui vient après ?)
             original_link = original_link.split('?')[0]
             
-            # Suivre la redirection pour récupérer le lien PC final (comme pour TikTok)
+            # Suivre la redirection pour récupérer le lien PC final
             final_url = await self.get_reddit_final_url(original_link)
             if final_url:
                 original_link = final_url
