@@ -164,6 +164,10 @@ bot/json/config.json
 token.txt
 tokengpt.txt
 
+# Local token directory (preferred over hardcoded paths)
+bot/token/
+!bot/token/README.md
+
 # Temporary/cache files
 .DS_Store
 Thumbs.db

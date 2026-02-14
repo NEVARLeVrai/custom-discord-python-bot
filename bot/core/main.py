@@ -26,14 +26,31 @@ CONFIG = {
     'target_user_id': 745923070736465940,
 }
 
+# Helper function to find files (local first, then fallback to hardcoded path)
+def get_file_path(local_path, fallback_path):
+    """
+    Search for file in local directory first, then fallback to hardcoded path.
+
+    Args:
+        local_path: Relative path to local file (e.g., "./token/token.txt")
+        fallback_path: Absolute fallback path (e.g., Google Drive path)
+
+    Returns:
+        str: Path to file (local if exists, otherwise fallback)
+    """
+    local_absolute = os.path.realpath(os.path.join(os.path.dirname(__file__), '..', local_path))
+    if os.path.exists(local_absolute):
+        return local_absolute
+    return fallback_path
+
 # Centralized paths for files and executables
 PATHS = {
-    'token_file': "C:/Users/Danie/Mon Drive/Autres/Bot Python Discord/token.txt",
-    'gpt_token_file': "C:/Users/danie/Mon Drive/Autres/Bot Python Discord/tokengpt.txt",
+    'token_file': get_file_path("token/token.txt", "C:/Users/Danie/Mon Drive/Autres/Bot Python Discord/token.txt"),
+    'gpt_token_file': get_file_path("token/tokengpt.txt", "C:/Users/danie/Mon Drive/Autres/Bot Python Discord/tokengpt.txt"),
     'ffmpeg_exe': str(os.path.realpath(os.path.join(os.path.dirname(__file__), '..', 'bin', 'ffmpeg.exe' if sys.platform.startswith('win') else 'ffmpeg'))),
     'node_exe': str(os.path.realpath(os.path.join(os.path.dirname(__file__), '..', 'bin', 'node.exe' if sys.platform.startswith('win') else 'node'))),
-    'gpt_logs': "C:/Users/danie/Mon Drive/Autres/Bot Python Discord/gptlogs.txt",
-    'dalle_logs': "C:/Users/danie/Mon Drive/Autres/Bot Python Discord/dallelogs.txt",
+    'gpt_logs': get_file_path("logs/gptlogs.txt", "C:/Users/danie/Mon Drive/Autres/Bot Python Discord/gptlogs.txt"),
+    'dalle_logs': get_file_path("logs/dallelogs.txt", "C:/Users/danie/Mon Drive/Autres/Bot Python Discord/dallelogs.txt"),
     'warns_json': "./json/warns.json",
     'levels_json': "./json/levels.json",
     'banned_words_json': "./json/banned_words.json",
