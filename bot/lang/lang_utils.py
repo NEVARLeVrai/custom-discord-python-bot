@@ -17,7 +17,8 @@ def load_languages():
         return
 
     for filename in os.listdir(LANG_DIR):
-        if filename.endswith(".json"):
+        # Ignore config.json and any non-language JSON files
+        if filename.endswith(".json") and filename not in ("config.json",):
             lang_code = filename[:-5]
             path = os.path.join(LANG_DIR, filename)
             try:
