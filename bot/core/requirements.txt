@@ -1,5 +1,5 @@
 discord.py
-yt-dlp[default]
+yt-dlp
 yt-dlp-ejs
 PyNaCl
 openai
@@ -9,7 +9,6 @@ python-dotenv
 pytz
 cycler
 dotenv
-ffmpeg
 py7zr
 gTTS
 httpcore
