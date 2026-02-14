@@ -1,6 +1,6 @@
+{
   "help_video_title": "Video & Audio Commands (yt-dlp)",
   "help_video_desc": "Commands to play, search and manage videos or music from YouTube, TikTok, X, etc. (yt-dlp)",
-{
   "youtube_only": "Only YouTube links are accepted for playback.",
   "not_in_voice": "You must be connected to a voice channel to use this command.",
   "yt_error": "An error occurred: {error}",

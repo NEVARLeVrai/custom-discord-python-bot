@@ -1,6 +1,6 @@
+{
   "help_video_title": "Commandes Vidéo & Audio (yt-dlp)",
   "help_video_desc": "Commandes pour lire, rechercher et gérer des vidéos ou musiques depuis YouTube, TikTok, X, etc. (yt-dlp)",
-{
   "youtube_only": "Seuls les liens YouTube sont acceptés pour la lecture.",
   "not_in_voice": "Vous devez être connecté à un salon vocal pour utiliser cette commande.",
   "yt_error": "Une erreur s'est produite : {error}",
