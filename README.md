@@ -1,7 +1,6 @@
-# Python Discord Bot _(Bot and all comments are in French)_
+# Python Discord Bot
 
-A complete **Discord bot** with numerous features, developed in **Python** using **discord.py**.  
-⚠️ _All bot commands, responses, and comments in the code are written in French._
+A complete **Discord bot** with numerous features, developed in **Python** using **discord.py**.
 
 ---
 
@@ -9,6 +8,7 @@ A complete **Discord bot** with numerous features, developed in **Python** using
 
 - [Features](#-features)
 - [Installation](#-installation)
+- [How to Launch](#-how-to-launch)
 - [Configuration](#️-configuration)
 - [Project Structure](#-project-structure)
 - [Slash Commands](#-slash-commands)
@@ -21,37 +21,42 @@ A complete **Discord bot** with numerous features, developed in **Python** using
 
 ## 🚀 Features
 
+### 🌍 Internationalization (New!)
+
+- **`/setlang [language]`** – Change the bot's language (English `en` or French `fr`) directly in Discord.
+- **Persisted Preference** – The language setting is saved in `bot/json/config.json` and persists across restarts.
+
 ### 🧩 General Commands
 
-- **`=helps`** – Displays all available commands
-- **`=ping`** – Shows the bot's latency in ms
-- **`=version`** or **`=v`** – Displays the bot's version
-- **`=report [message]`** – Report a bug or send feedback
-- **`=stop`** – Stops the bot _(owner only)_
-- **`=sync`**, **`=syncslash`**, or **`=reloadslash`** – Re-sync slash commands _(owner only)_
-- **`=clearslash`**, **`=clearslashcommands`**, or **`=deleteslash`** – Remove all slash commands _(owner only)_
-- **`=slashinfo`**, **`=slashdebug`**, or **`=cmdinfo`** – Display slash command diagnostics _(owner only)_
+- **`/helps`** – Displays all available commands
+- **`/ping`** – Shows the bot's latency in ms
+- **`/version`** or **`/v`** – Displays the bot's version
+- **`/report [message]`** – Report a bug or send feedback
+- **`/stop`** – Stops the bot _(owner only)_
+- **`/sync`**, **`/syncslash`**, or **`/reloadslash`** – Re-sync slash commands _(owner only)_
+- **`/clearslash`**, **`/clearslashcommands`**, or **`/deleteslash`** – Remove all slash commands _(owner only)_
+- **`/slashinfo`**, **`/slashdebug`**, or **`/cmdinfo`** – Display slash command diagnostics _(owner only)_
 
 ---
 
 ### 🛡️ Moderation
 
-- **`=clear [amount]`** – Delete messages (max 70)
-- **`=warn [@user] [reason] [count]`** – Warn a user
-- **`=resetwarn [@user]`** – Reset user warnings
-- **`=warnboard`** – Show warnings leaderboard
-- **`=kick [@user] [reason]`** – Kick a user
-- **`=ban [@user or ID] [reason]`** – Ban a user
-- **`=unban [ID]`** – Unban a user
-- **`=cleanraidsimple [name]`** – Delete a channel by name
-- **`=cleanraidmultiple [date] [time]`** – Delete channels by date
-- **`=giverole [@user] [@role]`** – Give a role _(owner only)_
-- **`=removerole [@user] [@role]`** – Remove a role _(owner only)_
-- **`=mp [@user or ID] [message]`** – Send a private message
-- **`=spam [count] [#channel or mention] [message]`** – Spam messages _(admin only)_
-- **`=banword [word]`** – Add a banned word
-- **`=unbanword [word]`** – Remove a banned word
-- **`=listbannedwords`** – Display all banned words
+- **`/clear [amount]`** – Delete messages (max 70)
+- **`/warn [@user] [reason] [count]`** – Warn a user
+- **`/resetwarn [@user]`** – Reset user warnings
+- **`/warnboard`** – Show warnings leaderboard
+- **`/kick [@user] [reason]`** – Kick a user
+- **`/ban [@user or ID] [reason]`** – Ban a user
+- **`/unban [ID]`** – Unban a user
+- **`/cleanraidsimple [name]`** – Delete a channel by name
+- **`/cleanraidmultiple [date] [time]`** – Delete channels by date
+- **`/giverole [@user] [@role]`** – Give a role _(owner only)_
+- **`/removerole [@user] [@role]`** – Remove a role _(owner only)_
+- **`/mp [@user or ID] [message]`** – Send a private message
+- **`/spam [count] [#channel or mention] [message]`** – Spam messages _(admin only)_
+- **`/banword [word]`** – Add a banned word
+- **`/unbanword [word]`** – Remove a banned word
+- **`/listbannedwords`** – Display all banned words
 
 **Per-Server System:**
 
@@ -61,7 +66,7 @@ A complete **Discord bot** with numerous features, developed in **Python** using
 **Automatic Features:**
 
 - **Banned word detection** – Automatically detects and deletes messages containing banned words (per server)
-- **Automatic warn** – Users receive a warn via DM when using a banned word (reason: "mot banni utilisé : [word]")
+- **Automatic warn** – Users receive a warn via DM when using a banned word (reason: "banned word used: [word]")
 - **Automatic sanctions** – 5 warns → 10 min timeout · 10 warns → 10 min timeout · 15 warns → kick · 20 warns → ban
 - **Role protection** – Protected roles are temporarily removed during sanctions and restored after timeout
 - **Sanctions are server-specific** – Warns are tracked separately for each server
@@ -70,13 +75,13 @@ A complete **Discord bot** with numerous features, developed in **Python** using
 
 ### 🧰 Utility
 
-- **`=gpt [question]`** – Ask GPT a question
-- **`=dalle [prompt]`** – Generate an image using DALL·E
-- **`=repeat [#channel or @user] [message]`** – Repeat a message
-- **`=8ball [question]`** – Ask the magic 8-ball
-- **`=hilaire`** – Hilaire game
-- **`=deldms`** – Delete all bot DMs _(admin only)_
-- **`=tts [language] [volume] [text]`** – Make the bot speak (e.g. `=tts fr 3.0 Hello`)
+- **`/gpt [question]`** – Ask GPT a question
+- **`/dalle [prompt]`** – Generate an image using DALL·E
+- **`/repeat [#channel or @user] [message]`** – Repeat a message
+- **`/8ball [question]`** – Ask the magic 8-ball
+- **`/hilaire`** – Hilaire game
+- **`/deldms`** – Delete all bot DMs _(admin only)_
+- **`/tts [language] [volume] [text]`** – Make the bot speak (e.g. `/tts en 3.0 Hello`)
 
 > The bot automatically joins the user's voice channel and stays connected for other audio features.
 
@@ -96,14 +101,14 @@ Original messages are deleted and replaced with the optimized link.
 
 ### 🎵 Soundboard
 
-- **`=slist`** – List available sounds
-- **`=splay [number]`** – Play a sound (auto joins VC)
-- **`=sleave`** – Leave VC
-- **`=sstop`** – Stop sound
-- **`=srandom`** – Play random sounds every 1–5 min
-- **`=srandomskip`** – Skip current random sound
-- **`=srandomstop`** – Stop random playback
-- **`=vkick [@user]`** – Kick a user from VC _(admin only)_
+- **`/slist`** – List available sounds
+- **`/splay [number]`** – Play a sound (auto joins VC)
+- **`/sleave`** – Leave VC
+- **`/sstop`** – Stop sound
+- **`/srandom`** – Play random sounds every 1–5 min
+- **`/srandomskip`** – Skip current random sound
+- **`/srandomstop`** – Stop random playback
+- **`/vkick [@user]`** – Kick a user from VC _(admin only)_
 
 Supported formats : MP3 / MP4 / M4A / OGG / OPUS / WAV / FLAC / AAC
 
@@ -111,18 +116,18 @@ Supported formats : MP3 / MP4 / M4A / OGG / OPUS / WAV / FLAC / AAC
 
 ### 📺 YouTube Player
 
-- **`=play [URL]`** – Play a YouTube video
-- **`=search [query]`** – Search and play
-- **`=skip`**, **`=stopm`**, **`=pause`**, **`=resume`**, **`=queue`**, **`=clearq`**, **`=loop`**, **`=leave`** – Manage playback
+- **`/play [URL]`** – Play a YouTube video
+- **`/search [query]`** – Search and play
+- **`/skip`**, **`/stopm`**, **`/pause`**, **`/resume`**, **`/queue`**, **`/clearq`**, **`/loop`**, **`/leave`** – Manage playback
 
 ---
 
 ### 🧬 Leveling System
 
-- **`=level [@user]`** – View level
-- **`=resetlevel`** – Reset all levels _(admin only)_
-- **`=levelsettings`** – Toggle leveling
-- **`=levelboard`** – Show leaderboard
+- **`/level [@user]`** – View level
+- **`/resetlevel`** – Reset all levels _(admin only)_
+- **`/levelsettings`** – Toggle leveling
+- **`/levelboard`** – Show leaderboard
 
 **Automatic Features:**
 
@@ -136,93 +141,142 @@ Supported formats : MP3 / MP4 / M4A / OGG / OPUS / WAV / FLAC / AAC
 
 ### Requirements
 
-- Python 3.8 or higher
-- FFmpeg
-- Discord Bot Token
-- OpenAI API Token
-- `aiohttp` library
+**Zero configuration required!** The bot is **portable**.
 
-### Steps
+1.  **Prerequisites**: Have [Python 3.8+](https://www.python.org/downloads/) installed.
+2.  **Launch the bot**:
+    - Double-click on `run.bat` (Windows).
+    - Or run `./run.sh` (Linux/Mac).
+
+✨ **Magic**: On first launch, the bot will **automatically**:
+
+- Install all Python dependencies (`discord.py`, `yt-dlp`, `openai`, etc.)
+- Download **FFmpeg** (for audio/soundboard)
+- Download **Node.js** (for YouTube player with yt-dlp)
+
+All tools are installed in `bot/bin/` and **will not affect your system**.
+
+### Python Dependencies
+
+The bot automatically installs these packages from `bot/core/requirements.txt`:
+
+- `discord.py` – Discord API wrapper
+- `yt-dlp[default]` – YouTube video extraction
+- `yt-dlp-ejs` – JavaScript runtime support for yt-dlp
+- `PyNaCl` – Voice support
+- `openai` – GPT and DALL·E integration
+- `mutagen`, `requests`, `python-dotenv`, `pytz` – Utilities
+
+### Token Configuration
+
+**Required:** You need a Discord bot token to run the bot.
+
+#### 📋 How to get a Discord token:
+
+1. Go to [Discord Developer Portal](https://discord.com/developers/applications)
+2. Create a new application or select an existing one
+3. Go to the **Bot** section
+4. Click **Reset Token** and copy your token
+5. Enable these **Privileged Gateway Intents**:
+   - ✅ Presence Intent
+   - ✅ Server Members Intent
+   - ✅ Message Content Intent
+
+#### 📝 Configure the token:
+
+**Current configuration:** The bot reads the token from a file path specified in `bot/core/main.py` (line 31).
+
+**Default path:**
+```python
+'token_file': "C:/Users/Danie/Mon Drive/Autres/Bot Python Discord/token.txt"
+```
+
+**To configure:**
+1. Edit `bot/core/main.py` line 31 with your desired path, OR
+2. Create a `token.txt` file at the path specified in `main.py`
+3. Put your Discord token inside (just the token, nothing else)
+
+**Example `token.txt`:**
+```
+MTIzNDU2Nzg5MDEyMzQ1Njc4.GhIjKl.MnOpQrStUvWxYz1234567890AbCdEfGhIjKlMnOp
+```
+
+**⚠️ Important:** Never share your token or commit it to Git (already in `.gitignore`)
+
+#### 🔧 Alternative: Use a local `.env` file (Optional)
+
+For better portability, you can use a `.env` file in the project root:
+
+**`.env` file:**
+```env
+DISCORD_TOKEN=your_token_here
+GPT_TOKEN=your_gpt_token_here
+```
+
+> Note: To use `.env`, you need to modify `bot/core/main.py` to load from environment variables instead of files.
+
+---
+
+## 🚀 How to Launch
+
+The project includes convenient scripts in the root directory that automatically check for dependencies (Python, Node.js, FFmpeg).
+
+### 🪟 Windows
+
+Double-click on `run.bat` in the root folder, or run in terminal:
+
+```cmd
+run.bat
+```
+
+### 🐧 Linux / Mac
+
+Make the script executable and run it:
 
 ```bash
-git clone <repository-url>
-cd bot_discord
-pip install -r requirements.txt
-python main.py
-```
-
-### Configuration
-
-Edit `main.py`:
-
-```python
-PATHS = {
-    "token_file": "./token.txt",
-    "gpt_token_file": "./tokengpt.txt",
-    "ffmpeg_exe": "./ffmpeg.exe"
-}
+chmod +x run.sh
+./run.sh
 ```
 
 ---
 
-## ⚙️ Configuration
+## 🛠️ Administration Tools
 
-Invite the bot with :
+### Reset Bot
 
-- `bot`
-- `applications.commands`
+A tool is available to **reset** the bot's data (warns, levels, logs) to zero if needed.
 
-Required permissions :
+Run:
 
-- Read / Send Messages
-- Manage Messages
-- Kick / Ban Members
-- Connect & Speak in Voice Channels
+```bash
+python bot/tools/reset_bot.py
+```
+
+_Note: This will delete user data but preserve configuration files._
 
 ---
 
-## 📁 Project Structure
+## ⚙️ Project Structure
 
 ```
-bot_discord/
-├── main.py                    # Point d'entrée principal, configuration centralisée
-├── requirements.txt
-├── cogs/                      # Commandes prefix (=)
-│   ├── Help.py
-│   ├── Mods.py
-│   ├── Utility.py
-│   ├── Soundboard.py
-│   ├── Youtube.py
-│   ├── Leveling.py
-│   └── Owner.py               # Commandes owner-only
-├── cogs_slash_commands/       # Commandes slash (/)
-│   ├── Help_slash.py
-│   ├── Mods_slash.py
-│   ├── Utility_slash.py
-│   ├── Soundboard_slash.py
-│   ├── Youtube_slash.py
-│   ├── Leveling_slash.py
-│   └── Owner_slash.py
-├── cogs_auto_commands/        # Détections automatiques et gestion d'erreurs
-│   ├── ErrorHandler.py        # Gestion centralisée des erreurs
-│   ├── Mods_auto.py           # Détection mots bannis + warns automatiques
-│   ├── Leveling_auto.py       # Système de leveling automatique
-│   ├── Utility_auto.py        # Conversion automatique des liens sociaux
-│   └── Help_auto.py           # Forwarding automatique des MPs
-├── json/
-│   ├── warns.json             # Warns organisés par serveur: {guild_id: {user_id: {...}}}
-│   ├── levels.json
-│   ├── banned_words.json      # Mots bannis organisés par serveur: {guild_id: [words]}
-│   └── update_logs.json
-├── img/
-│   ├── 8ball.png
-│   ├── hilaire.png
-│   ├── hilaire2.png
-│   ├── version.jpg
-│   └── info.png
-├── Sounds/                    # Fichiers audio pour le soundboard
-└── Others/
-    └── Run Bot.bat
+Python-Discord-Bot/
+├── run.bat                    # Launcher (Windows)
+├── run.sh                     # Launcher (Linux/Mac)
+└── bot/
+    ├── bin/                   # Portable tools (FFmpeg, Node.js) - Created automatically
+    ├── core/                  # Source Code
+    │   ├── main.py            # Entry point
+    │   ├── run.py             # Launcher logic & auto-installation
+    │   ├── requirements.txt
+    │   ├── services/          # Business logic (Audio, Leveling, Mod...)
+    │   ├── slash_commands/    # Slash commands (/)
+    │   └── auto_commands/     # Auto commands & Error handling
+    ├── json/                  # Data (config, warns, levels...)
+    ├── lang/                  # Localization (fr.json, en.json)
+    ├── img/                   # Images / Assets
+    ├── Sounds/                # Audio files for Soundboard
+    ├── logs/                  # Log files
+    └── tools/                 # Admin scripts (reset_bot.py)
 ```
 
 ---
@@ -232,9 +286,9 @@ bot_discord/
 All commands are available as **slash commands** and sync automatically on startup.  
 Use :
 
-- **`=sync`** → Force sync
-- **`=clearslash`** → Remove all slash commands
-- **`=slashinfo`** → Diagnostics
+- **`/sync`** → Force sync
+- **`/clearslash`** → Remove all slash commands
+- **`/slashinfo`** → Diagnostics
 
 Global sync may take up to 1 hour to propagate.
 
@@ -242,7 +296,7 @@ Global sync may take up to 1 hour to propagate.
 
 ## 🛡️ Error Handling
 
-Comprehensive French-language error system with centralized error handling (`cogs_auto_commands/ErrorHandler.py`) :
+Comprehensive error system with centralized error handling:
 
 - Unknown command
 - Missing permissions
@@ -256,43 +310,12 @@ Comprehensive French-language error system with centralized error handling (`cog
 
 All errors are also logged to the console with full tracebacks.
 
-Example :
-
-```
-┌─────────────────────────────────────┐
-│  Permissions insuffisantes          │
-│                                     │
-│  Vous n'avez pas les permissions    │
-│  nécessaires pour utiliser cette    │
-│  commande.                          │
-│                                     │
-│  Permissions requises :             │
-│  Manage Messages, Kick Members      │
-└─────────────────────────────────────┘
-```
-
----
-
-## 📝 Notes
-
-- Some commands work in DMs
-- The bot deletes command messages after execution
-- Leveling can be enabled/disabled by admins
-- Automatic link conversion for Instagram, X (Twitter), and Reddit
-- Soundboard, YouTube, and TTS share a single voice connection
-- All paths and configurations are centralized in `main.py` (`client.paths` and `client.config`)
-- Automatic features are separated into `cogs_auto_commands/` for better organization
-- Error handling is centralized in `ErrorHandler.py`
-- Banned words trigger automatic warnings via DM
-- Protected roles are automatically managed during sanctions
-- **Warns and banned words are server-specific** – Each server has independent moderation data
-
 ---
 
 ## ⚠️ Warnings
 
 - Keep all tokens private
-- Ensure required permissions are granted
+- Ensure required permissions are granted (including Intent `Message Content`)
 - Some commands are restricted to admins or owners
 
 ---
@@ -302,11 +325,11 @@ Example :
 Use :
 
 ```
-=report [message]
+/report [message]
 ```
 
 to send feedback or report a bug.  
-A ticket is automatically sent to the developer.
+A ticket is automatically sent to the developer via webhook.
 
 ---
 
