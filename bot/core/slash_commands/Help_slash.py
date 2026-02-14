@@ -140,8 +140,8 @@ class Help_slash(commands.Cog):
         embeds.append(embed3)
         files.append(None)
 
-        # Page 4: YouTube
-        embed4 = discord.Embed(title=t('help_youtube_title'), description=t('help_youtube_desc'), color=discord.Color.random())
+        # Page 4: Vidéos & Audio (yt-dlp)
+        embed4 = discord.Embed(title=t('help_video_title'), description=t('help_video_desc'), color=discord.Color.random())
         embed4.set_author(name=t('help_requested_by', user=user.name), icon_url=user.avatar)
         embed4.add_field(name="leave", value=t('help_leave_desc'))
         embed4.add_field(name="play", value=t('help_play_desc'))

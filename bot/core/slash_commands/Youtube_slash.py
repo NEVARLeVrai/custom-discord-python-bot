@@ -6,7 +6,7 @@ import asyncio
 from lang.lang_utils import t
 from services.version_service import get_current_version
 
-class Youtube_slash(commands.Cog):
+class Video_slash(commands.Cog):
     def __init__(self, client):
         self.client = client
         self.audio_service = client.audio_service
@@ -27,14 +27,9 @@ class Youtube_slash(commands.Cog):
 
         self.client.loop.create_task(inner_check_queue())
 
-    @app_commands.command(name="play", description="Play a YouTube video")
-    @app_commands.describe(url="The YouTube video URL")
+    @app_commands.command(name="play", description="Play a video or audio from a link (YouTube, TikTok, X, etc.)")
+    @app_commands.describe(url="Video or audio link (YouTube, TikTok, X, etc.)")
     async def play(self, interaction: discord.Interaction, url: str):
-        if not (url.startswith('https://www.youtube.com/') or url.startswith('https://youtu.be/')):
-            embed = discord.Embed(title=t('yt_error_title'), description=t('yt_play_error_only_youtube'), color=discord.Color.red())
-            embed.set_author(name=t('help_requested_by', user=interaction.user.name), icon_url=interaction.user.avatar)
-            embed.set_footer(text=get_current_version(self.client))
-            return await interaction.response.send_message(embed=embed, ephemeral=True)
 
         if not interaction.user.voice:
             embed = discord.Embed(title=t('yt_error_title'), description=t('yt_error_not_in_voice'), color=discord.Color.red())
@@ -56,7 +51,7 @@ class Youtube_slash(commands.Cog):
             with YoutubeDL(ydl_options) as ydl:
                 info = ydl.extract_info(url, download=False)
             audio_url = info['url']
-            title = info['title']
+            title = info.get('title', url)
             
             queue = self.audio_service.get_queue(interaction.guild.id)
             
@@ -77,8 +72,8 @@ class Youtube_slash(commands.Cog):
             embed.set_footer(text=get_current_version(self.client))
             await interaction.followup.send(embed=embed, ephemeral=True)
 
-    @app_commands.command(name="search", description="Search for a YouTube video")
-    @app_commands.describe(query="The search query", choice="Video number to play (1-10)")
+    @app_commands.command(name="search", description="Search for a video or audio (YouTube, TikTok, X, etc.)")
+    @app_commands.describe(query="Search (title, artist, etc.)", choice="Video number to play (1-10)")
     async def search(self, interaction: discord.Interaction, query: str, choice: int = None):
         if not interaction.user.voice:
             embed = discord.Embed(title=t('yt_error_title'), description=t('yt_error_not_in_voice'), color=discord.Color.red())
@@ -127,11 +122,11 @@ class Youtube_slash(commands.Cog):
             if choice is not None:
                 if 1 <= choice <= len(videos):
                     selected = videos[choice - 1]
-                    video_url = f"https://www.youtube.com/watch?v={selected['id']}"
+                    video_url = selected.get('webpage_url', f"https://www.youtube.com/watch?v={selected['id']}")
                     with YoutubeDL(play_options) as ydl:
                         v_info = ydl.extract_info(video_url, download=False)
                     audio_url = v_info['url']
-                    title = v_info.get('title', selected['title'])
+                    title = v_info.get('title', selected.get('title', video_url))
                     
                     queue = self.audio_service.get_queue(interaction.guild.id)
                     if (self.audio_service.is_playing(interaction.guild) or self.audio_service.is_paused(interaction.guild)) and len(queue) > 0:
@@ -150,7 +145,7 @@ class Youtube_slash(commands.Cog):
                     embed.set_footer(text=get_current_version(self.client))
                     return await interaction.followup.send(embed=embed, ephemeral=True)
 
-            result_text = "\n".join([f"**{i+1}.** {v['title']}" for i, v in enumerate(videos)])
+            result_text = "\n".join([f"**{i+1}.** {v.get('title', v.get('webpage_url', ''))}" for i, v in enumerate(videos)])
             embed = discord.Embed(title=t('yt_search_results_title'), description=t('yt_search_results_desc', query=query, results=result_text), color=discord.Color.blue())
             embed.add_field(name=t('yt_search_choice_title'), value=t('yt_search_choice_slash_desc', query=query))
             embed.set_author(name=t('help_requested_by', user=interaction.user.name), icon_url=interaction.user.avatar)
@@ -164,7 +159,7 @@ class Youtube_slash(commands.Cog):
             await interaction.followup.send(embed=embed, ephemeral=True)
             print(t('log_err_search', error=e))
 
-    @app_commands.command(name="skip", description="Skip the current video")
+    @app_commands.command(name="skip", description="Skip the current video/audio")
     async def skip(self, interaction: discord.Interaction):
         if self.audio_service.is_playing(interaction.guild):
             queue = self.audio_service.get_queue(interaction.guild.id)
@@ -196,7 +191,7 @@ class Youtube_slash(commands.Cog):
             embed.set_footer(text=get_current_version(self.client))
             await interaction.response.send_message(embed=embed, ephemeral=True)
 
-    @app_commands.command(name="pause", description="Pause the video")
+    @app_commands.command(name="pause", description="Pause the video/audio")
     async def pause(self, interaction: discord.Interaction):
         if self.audio_service.pause(interaction.guild):
             embed = discord.Embed(title=t('yt_pause_title'), description=t('yt_pause_desc'), color=discord.Color.orange())
@@ -209,7 +204,7 @@ class Youtube_slash(commands.Cog):
             embed.set_footer(text=get_current_version(self.client))
             await interaction.response.send_message(embed=embed, ephemeral=True)
 
-    @app_commands.command(name="resume", description="Resume the video")
+    @app_commands.command(name="resume", description="Resume the video/audio")
     async def resume(self, interaction: discord.Interaction):
         if self.audio_service.resume(interaction.guild):
             embed = discord.Embed(title=t('yt_resume_title'), description=t('yt_resume_desc'), color=discord.Color.green())
@@ -243,7 +238,7 @@ class Youtube_slash(commands.Cog):
         embed.set_footer(text=get_current_version(self.client))
         await interaction.response.send_message(embed=embed)
 
-    @app_commands.command(name="leave", description="Disconnect the bot from voice")
+    @app_commands.command(name="leave", description="Disconnect the bot from voice channel")
     async def leave(self, interaction: discord.Interaction):
         voice = discord.utils.get(self.client.voice_clients, guild=interaction.guild)
         if voice:
@@ -258,7 +253,7 @@ class Youtube_slash(commands.Cog):
             embed.set_footer(text=get_current_version(self.client))
             await interaction.response.send_message(embed=embed, ephemeral=True)
 
-    @app_commands.command(name="loop", description="Toggle loop")
+    @app_commands.command(name="loop", description="Toggle loop mode for current video/audio")
     async def loop(self, interaction: discord.Interaction):
         guild_id = interaction.guild.id
         self.audio_service.loop_states[guild_id] = not self.audio_service.loop_states.get(guild_id, False)
@@ -270,4 +265,4 @@ class Youtube_slash(commands.Cog):
 
 
 async def setup(client):
-    await client.add_cog(Youtube_slash(client))
+    await client.add_cog(Video_slash(client))

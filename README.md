@@ -114,11 +114,16 @@ Supported formats : MP3 / MP4 / M4A / OGG / OPUS / WAV / FLAC / AAC
 
 ---
 
-### 📺 YouTube Player
 
-- **`/play [URL]`** – Play a YouTube video
-- **`/search [query]`** – Search and play
+### 📺 Video & Audio Player (yt-dlp)
+
+- **`/play [URL]`** – Play a video or audio from any supported site (YouTube, TikTok, X, etc.)
+- **`/search [query]`** – Search and play (YouTube, TikTok, etc.)
 - **`/skip`**, **`/stopm`**, **`/pause`**, **`/resume`**, **`/queue`**, **`/clearq`**, **`/loop`**, **`/leave`** – Manage playback
+
+Supported platforms: [see full list](https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md) (YouTube, TikTok, X, Facebook, SoundCloud, Twitch, Vimeo, etc.)
+
+Powered by [yt-dlp](https://github.com/yt-dlp/yt-dlp).
 
 ---
 
