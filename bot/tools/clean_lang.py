@@ -3,9 +3,17 @@ import os
 import re
 
 """
-Utility script to clean up and sort language files (fr.json, en.json).
-It parses the Python source code to find used translation keys and removes unused ones.
-Note: To reset all bot data (logs, warns, levels, cache), use tools/reset_bot.py instead.
+CLEAN_LANG - Translation Cleanup Utility
+---------------------------------------
+This tool parses all Python files in the bot directory to identify which 
+translation keys (e.g., t('key_name')) are actually being used.
+
+It then cleans the language files (en.json, fr.json) by:
+1. Removing any keys that are no longer referenced in the code.
+2. Sorting the remaining keys alphabetically for better maintainability.
+
+Usage: Run this script when you have removed commands or strings from the code
+       to keep the JSON files compact and organized.
 """
 
 # Always relative to this script

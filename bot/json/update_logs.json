@@ -1,60 +1,12 @@
 {
-  "current_version": "Bot V.1602.1a-26",
+  "_comment": "VERSIONING RULES: Bot V.DDMM.HOTFIX[TYPE]-YY | TYPE: a (Alpha) > b (Beta) > s (Stable). HOTFIX: 1.0.0 or more progressive.",
+  "_comment1": "I have cleaned older versions",
+  "current_version": "Bot V.1602.2s-26",
   "history": [
     {
-      "version": "Bot V.1602.1a-26",
+      "version": "Bot V.1602.2s-26",
       "date": "16/02/2026",
-      "logs": "Localization Audit Finalized: Fixed all slash commands and auto-commands to support per-server localization (guild_id). Updated core services (Audio, Moderation, Leveling) and the global error handler. Documentation (README) and administration tools updated."
-    },
-    {
-      "version": "Bot V.1502s-26",
-      "date": "15/02/2026",
-      "logs": "Per-Server Language Configuration: Implemented advanced localization system allowing each Discord server to have its own language preference (English/French). Settings are persisted in bot/lang/config.json. Updated over 150 translation calls across all modules (Mods, Youtube, Help, Utility, Owner) to be guild-aware. Optimized configuration structure and updated documentation (README)."
-    },
-    {
-      "version": "Bot V.1502c-26",
-      "date": "15/02/2026",
-      "logs": "Final Internationalization & System Cleanup: Completed full project localization (translation keys added for all internal logs, startup messages, and auto-commands), restored 'help_requested_by' key consistency across all modules, and significantly enhanced 'reset_bot.py'. The reset tool now performs a total purge including GPT/DALL-E logs, banned words, all server data, and recursive cache removal (__pycache__) across the entire project structure."
-    },
-    {
-      "version": "Bot V.1502b-26",
-      "date": "15/02/2026",
-      "logs": "Audio System Improvements: Added real-time volume control (PCMVolumeTransformer), visual progress bar in music embeds, improved position tracking, and enhanced /mseek command (supports minutes and seconds). Removed all remaining French comments from core audio services and cleaned up MusicControlView UI logic."
-    },
-    {
-      "version": "Bot V.1502s-26",
-      "date": "15/02/2026",
-      "logs": "Major Music System Overhaul: Complete UI redesign with interactive buttons (Previous, Play/Pause, Skip, Loop, ±15s, Queue, Stop), all YouTube commands renamed with 'm' prefix for clarity (mplay, msearch, mskip, etc.), advanced playback controls (mvolume, mseek, mprevious, maddqueue, mremovequeue), track history system (50 last tracks), volume control for music and soundboard (0-200%), improved queue management (proper song queuing when music is playing), fixed search command interaction timeout with defer(), new MusicControlView with 8 interactive buttons for full music control, updated audio_service (volume, seek, track history), help system updated with all new commands and UI controls, 54 commands synchronized (previously 44)."
-    },
-    {
-      "version": "Bot V.1402b-26",
-      "date": "14/02/2026",
-      "logs": "Fix yt-dlp JavaScript runtime configuration: correct implementation of js_runtimes parameter with Node.js from bot/bin/, removal of obsolete youtube_dl dependency, optimization of YouTube player with proper Node.js detection, all YouTube features now work without JavaScript runtime warnings."
-    },
-    {
-      "version": "Bot V.1402s-26",
-      "date": "14/02/2026",
-      "logs": "Traduction intégrale du code source en Anglais (commentaires, docstrings, descriptions des commandes slash), Mise à jour de la documentation, Amélioration de l'internationalisation."
-    },
-    {
-      "version": "Bot V.1111s-25",
-      "date": "11/11/2025",
-      "logs": "enlèvement de la correction automatique d'orthographe et de grammaire"
-    },
-    {
-      "version": "Bot V.1011s-25",
-      "date": "10/11/2025",
-      "logs": "Ajout du correcteur automatique d'orthographe et de grammaire : intégration de LanguageTool API v2 (2025), support de 40+ langues avec mode auto pour détection automatique, analyse contextuelle avancée utilisant le contexte complet de la phrase et du texte, système de priorité pour corrections de grammaire/conjugaison/accord (score 3.0), vérification en deux passes pour capturer toutes les erreurs d'accord, sélection intelligente des corrections (examine jusqu'à 10 suggestions par erreur), commandes prefix (=correcteur, =langue) et slash (/correcteur, /langue) pour gestion par serveur, configuration sauvegardée dans json/grammar_corrector.json, correction des commandes owner slash (vérification multi-méthodes), amélioration de l'affichage (embed avec texte corrigé uniquement), mise à jour complète de la documentation (Help, Help_slash, README), affichage de toutes les langues supportées dans les commandes langue"
-    },
-    {
-      "version": "Bot V.0911s-25",
-      "date": "09/11/2025",
-      "logs": "Réorganisation complète de l'architecture du bot : séparation des détections automatiques dans cogs_auto_commands/ (Mods_auto, Leveling_auto, Utility_auto, Help_auto), centralisation de la gestion d'erreurs dans ErrorHandler.py, déplacement des commandes owner dans cogs/Owner.py, centralisation de tous les paths et configs dans main.py (client.paths et client.config), amélioration de la détection automatique des mots bannis avec warn automatique par MP, correction des problèmes de gestion des données (warns, levels, banned_words), amélioration de la robustesse du code avec vérifications d'existence des attributs, ajout de la tâche automatique check_timeout_end pour la gestion des rôles protégés, optimisation du système de leveling automatique, amélioration de la conversion automatique des liens sociaux (résolution des liens courts Reddit)"
-    },
-    {
-      "version": "Bot V.0910s-25",
-      "date": "09/10/2025",
-      "logs": "Refactoring complet du code, optimisation et amélioration de la structure, ajout de la résolution automatique des liens courts (Reddit), conversion améliorée des liens vers des services d'embed optimisés, utilisation d'aiohttp pour des requêtes HTTP asynchrones non-bloquantes, ajout du système de pagination pour /helps, ajout de la commande /levelboard, amélioration du système de synchronisation des données (warns, levels, banned_words), migration complète vers les commandes slash"
+      "logs": "AudioPlayer Overhaul: Implemented 'Smart Previous' (restarts song if >5s or finished), fixed TikTok/local file seeking bug, and enabled persistent UI messages (embed only replaced on new tracks). Maintenance & Safety: Added universal exit listener for download cleanup (handles kicks/timeouts), enhanced 'reset_bot.py' with directory structure recreation, and fully rebranded music cog to 'AudioPlayer'."
     }
   ]
 }

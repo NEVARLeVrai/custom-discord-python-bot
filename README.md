@@ -117,7 +117,7 @@ Supported formats : MP3 / MP4 / M4A / OGG / OPUS / WAV / FLAC / AAC
 
 ---
 
-### 🎵 Music Player (yt-dlp) - **MAJOR UPDATE!**
+### 🎵 AudioPlayer (yt-dlp) - **MAJOR UPDATE!**
 
 **New Interactive UI with Buttons:**
 
@@ -148,6 +148,14 @@ Supported formats : MP3 / MP4 / M4A / OGG / OPUS / WAV / FLAC / AAC
 - **`/mseek [minutes] [seconds]`** – Seek to specific time (e.g. `/mseek minutes:1 seconds:30`) _(NEW!)_
 - **`/mvolume [0-200]`** – Set music volume (real-time, no restart) _(NEW!)_
 - **Dynamic Progress Bar** – "Now Playing" embed includes a visual progress bar _(NEW!)_
+
+**Smart Logic & Stability:**
+
+- **Smart "Previous" (⏮️)** – Restarts the current song if played > 5s or if it just finished. Perfect for replaying!
+- **Persistent UI** – The player message is only replaced when a new track starts. It stays visible even if the song ends or the queue is empty.
+- **Universal Seek Support** – Skip buttons (+15s / -15s) now work perfectly for both YouTube streams and local files (TikTok, X, etc.).
+- **Session-Based Cleanup** – Temporary audio files are preserved during your session for stability and cleared only when you leave or stop.
+- **Universal Exit Listener** – One-click cleanup even if the bot is kicked or timed out.
 
 Supported platforms: [see full list](https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md) (YouTube, TikTok, X, Facebook, SoundCloud, Twitch, Vimeo, etc.)
 
@@ -185,7 +193,7 @@ Powered by [yt-dlp](https://github.com/yt-dlp/yt-dlp).
 
 - Install all Python dependencies (`discord.py`, `yt-dlp`, `openai`, etc.)
 - Download **FFmpeg** (for audio/soundboard)
-- Download **Node.js** (for YouTube player with yt-dlp)
+- Download **Node.js** (for AudioPlayer with yt-dlp)
 
 All tools are installed in `bot/bin/` and **will not affect your system**.
 

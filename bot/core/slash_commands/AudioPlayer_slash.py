@@ -1,9 +1,12 @@
 import discord
 import os
+import shutil
+from typing import Dict, Any, Optional
 from discord import app_commands
 from discord.ext import commands
 from yt_dlp import YoutubeDL
 import asyncio
+import time
 from lang.lang_utils import t
 from services.version_service import get_current_version
 
@@ -28,15 +31,22 @@ class MusicControlView(discord.ui.View):
     @discord.ui.button(emoji="⏮️", style=discord.ButtonStyle.secondary, custom_id="music_previous")
     async def previous_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.defer()
+        pos = self.cog.audio_service.get_current_position(self.guild_id)
+        is_playing = self.cog.audio_service.is_playing(interaction.guild) or self.cog.audio_service.is_paused(interaction.guild)
+        
+        # If we played more than 5 seconds, or if everything stopped (song finished), restart current song
+        if pos > 5 or (not is_playing and self.cog.audio_service.current_track.get(self.guild_id)):
+            await self.cog.audio_service.seek(interaction.guild, 0, lambda e: self.cog.check_queue(interaction))
+            return await interaction.followup.send(t('music_btn_previous_playing', title=self.cog.audio_service.current_track[self.guild_id]['title'], guild_id=self.guild_id), ephemeral=True)
+
         previous = self.cog.audio_service.get_previous(self.guild_id)
         if previous:
-            await self.cog.audio_service.play_audio(
-                interaction.guild, previous['url'], after_cb=lambda e: self.cog.check_queue(interaction),
-                title=previous['title']
-            )
+            await self.cog._play_track(interaction, previous)
             await interaction.followup.send(t('music_btn_previous_playing', title=previous['title'], guild_id=self.guild_id), ephemeral=True)
         else:
-            await interaction.followup.send(t('music_btn_previous_none', guild_id=self.guild_id), ephemeral=True)
+            # Fallback: Just restart current if no history
+            await self.cog.audio_service.seek(interaction.guild, 0, lambda e: self.cog.check_queue(interaction))
+            await interaction.followup.send(t('music_btn_previous_playing', title=self.cog.audio_service.current_track[self.guild_id]['title'], guild_id=self.guild_id), ephemeral=True)
 
     @discord.ui.button(emoji="⏪", style=discord.ButtonStyle.secondary, custom_id="music_rewind")
     async def rewind_button(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -123,50 +133,39 @@ class MusicControlView(discord.ui.View):
             del self.cog.progress_tasks[guild_id]
         
         self.cog.audio_service.stop(interaction.guild)
+        # Session cleanup (bridging to async loop)
+        asyncio.run_coroutine_threadsafe(self.cog._robust_session_cleanup(), self.cog.client.loop)
+        
         await interaction.response.send_message(t('music_btn_stopped', guild_id=guild_id), ephemeral=True)
-        
-        # Delete the embed message
-        try:
-            await interaction.message.delete()
-        except:
-            pass
-        
-        if guild_id in self.cog.active_messages:
-            del self.cog.active_messages[guild_id]
 
-class YoutubeSearchSelectView(discord.ui.View):
+class AudioPlayerSearchSelectView(discord.ui.View):
     def __init__(self, videos, cog):
         super().__init__(timeout=60)
         self.videos = videos
         self.cog = cog
         options = [
-            discord.SelectOption(label=t('yt_search_video_label', num=i+1, guild_id=cog.client.get_guild(videos[0]['guild_id']).id if 'guild_id' in videos[0] else None), description=video['title'][:100], value=str(i))
+            discord.SelectOption(label=t('audio_search_video_label', num=i+1, guild_id=cog.client.get_guild(videos[0]['guild_id']).id if 'guild_id' in videos[0] else None), description=video['title'][:100], value=str(i))
             for i, video in enumerate(videos)
         ]
-        self.add_item(YoutubeSearchSelect(options, videos, cog))
+        self.add_item(AudioPlayerSearchSelect(options, videos, cog))
 
-class YoutubeSearchSelect(discord.ui.Select):
+class AudioPlayerSearchSelect(discord.ui.Select):
     def __init__(self, options, videos, cog):
         guild_id = cog.client.get_guild(videos[0]['guild_id']).id if videos and 'guild_id' in videos[0] else None
-        super().__init__(placeholder=t('yt_search_select_placeholder', guild_id=guild_id), min_values=1, max_values=1, options=options)
+        super().__init__(placeholder=t('audio_search_select_placeholder', guild_id=guild_id), min_values=1, max_values=1, options=options)
         self.videos = videos
         self.cog = cog
 
     async def callback(self, interaction: discord.Interaction):
         guild_id = interaction.guild.id if interaction.guild else None
         await interaction.response.defer()
-        await interaction.response.defer()
 
         index = int(self.values[0])
         selected = self.videos[index]
-        play_options = {
-            'format': 'bestaudio/best',
-            'quiet': True,
-            'no_warnings': True,
-            'skip_unavailable_fragments': True,
-            'noplaylist': True,
-            'js_runtimes': {'node': {'path': self.cog.client.paths['node_exe']}}
-        }
+        play_options = self.cog._get_ydl_opts(
+            skip_unavailable_fragments=True,
+            noplaylist=True
+        )
         try:
             video_url = selected.get('webpage_url', f"https://www.youtube.com/watch?v={selected['id']}")
             with YoutubeDL(play_options) as ydl:
@@ -175,15 +174,28 @@ class YoutubeSearchSelect(discord.ui.Select):
             title = v_info.get('title', selected.get('title', video_url))
             queue = self.cog.audio_service.get_queue(interaction.guild.id)
             if self.cog.audio_service.is_playing(interaction.guild) or self.cog.audio_service.is_paused(interaction.guild):
-                queue.append({'title': title, 'url': audio_url})
-                embed = discord.Embed(title=t('yt_queue_add_title', guild_id=guild_id), description=t('yt_queue_add_desc', title=title, guild_id=guild_id), color=discord.Color.blue())
+                queue.append({
+                    'title': title, 
+                    'url': audio_url, 
+                    'headers': v_info.get('http_headers'),
+                    'original_url': video_url,
+                    'id': v_info.get('id')
+                })
+                embed = discord.Embed(title=t('audio_queue_add_title', guild_id=guild_id), description=t('audio_queue_add_desc', title=title, guild_id=guild_id), color=discord.Color.blue())
                 await interaction.followup.send(embed=embed)
             else:
-                duration = v_info.get('duration')
-                await self.cog.audio_service.play_audio(interaction.guild, audio_url, after_cb=lambda e: self.cog.check_queue(interaction), title=title, duration=duration)
+                track_info = {
+                    'title': title,
+                    'url': audio_url,
+                    'duration': v_info.get('duration'),
+                    'headers': v_info.get('http_headers'),
+                    'original_url': video_url,
+                    'id': v_info.get('id')
+                }
+                await self.cog._play_track(interaction, track_info)
                 
-                embed = discord.Embed(title=t('yt_play_title', guild_id=guild_id), description=t('yt_playing_desc_quoted', title=title, guild_id=guild_id), color=discord.Color.green())
-                embed.add_field(name=t('yt_progress', guild_id=guild_id), value=self.cog.audio_service.create_progress_bar(interaction.guild.id), inline=False)
+                embed = discord.Embed(title=t('audio_play_title', guild_id=guild_id), description=t('audio_playing_desc_quoted', title=title, guild_id=guild_id), color=discord.Color.green())
+                embed.add_field(name=t('audio_progress', guild_id=guild_id), value=self.cog.audio_service.create_progress_bar(interaction.guild.id), inline=False)
                 embed.set_author(name=t('help_requested_by', user=interaction.user.name, guild_id=guild_id), icon_url=interaction.user.avatar)
                 embed.set_footer(text=get_current_version(self.cog.client, guild_id=guild_id))
                 
@@ -199,48 +211,158 @@ class YoutubeSearchSelect(discord.ui.Select):
                 )
             self.view.stop()
         except Exception as e:
-            embed = discord.Embed(title=t('yt_error_title', guild_id=guild_id), description=t('yt_search_error_general', error=str(e), guild_id=guild_id), color=discord.Color.red())
+            embed = discord.Embed(title=t('audio_error_title', guild_id=guild_id), description=t('audio_search_error_general', error=str(e), guild_id=guild_id), color=discord.Color.red())
             embed.set_author(name=t('help_requested_by', user=interaction.user.name, guild_id=guild_id), icon_url=interaction.user.avatar)
             embed.set_footer(text=get_current_version(self.cog.client, guild_id=guild_id))
             await interaction.followup.send(embed=embed, ephemeral=True)
             print(t('log_err_search', error=e, guild_id=guild_id))
 
-class Video_slash(commands.Cog):
+class AudioPlayer(commands.Cog):
+    async def _robust_session_cleanup(self, retries: int = 15, delay: float = 1.5):
+        """Async cleanup of the downloads directory with retries."""
+        downloads_dir = self.client.paths.get('downloads_dir', 'downloads')
+        if not os.path.exists(downloads_dir):
+            return
+
+        print(t('log_cleanup_start'))
+        
+        for i in range(retries):
+            try:
+                # Try to delete the whole directory or its contents
+                for filename in os.listdir(downloads_dir):
+                    file_path = os.path.join(downloads_dir, filename)
+                    try:
+                        if os.path.isfile(file_path) or os.path.islink(file_path):
+                            os.unlink(file_path)
+                        elif os.path.isdir(file_path):
+                            shutil.rmtree(file_path)
+                        print(t('log_cleanup_success', file=filename))
+                    except Exception:
+                        # Skip files that are still locked (expected if FFmpeg is still exiting)
+                        continue
+                
+                # If directory is empty, we are done
+                if not os.listdir(downloads_dir):
+                    return
+            except Exception:
+                pass
+            await asyncio.sleep(delay)
+        
+        # Final check
+        if os.listdir(downloads_dir):
+            print(t('log_cleanup_failure', path=downloads_dir, retries=retries))
+
+    async def _play_track(self, interaction: discord.Interaction, track_info: Dict[str, Any]):
+        """Centralized method to play a track, handling download for shorts if needed."""
+        guild_id = interaction.guild.id
+        url = track_info['url']
+        title = track_info['title']
+        duration = track_info.get('duration')
+        headers = track_info.get('headers')
+        original_url = track_info.get('original_url', url)
+
+        # Check for short-form content to use download strategy (TikTok, X, Instagram, etc.)
+        short_form_domains = self.client.config.get('short_form_domains', [])
+        is_short_form = any(domain in original_url for domain in short_form_domains)
+        
+        if is_short_form:
+            # Download for Short Form Content
+            downloads_dir = self.client.paths.get('downloads_dir', 'downloads')
+            os.makedirs(downloads_dir, exist_ok=True)
+            
+            # Use unique ID + timestamp to avoid collisions
+            track_id = track_info.get('id', str(hash(original_url)))
+            timestamp = int(time.time())
+            outtmpl = os.path.join(downloads_dir, f'{track_id}_{timestamp}.%(ext)s')
+            
+            ydl_opts = self._get_ydl_opts(outtmpl=outtmpl)
+            try:
+                with YoutubeDL(ydl_opts) as ydl_down:
+                    info = ydl_down.extract_info(original_url, download=True)
+                    audio_path = ydl_down.prepare_filename(info)
+                
+                # Simple callback: just check the queue, no immediate per-song cleanup
+                def voice_after(error):
+                    self.check_queue(interaction)
+
+                await self.audio_service.play_audio(interaction.guild, audio_path, is_local=True, after_cb=voice_after, title=title, duration=duration, original_url=original_url)
+            except Exception as e:
+                print(t('log_err_download', url=original_url, error=str(e)))
+                # Fallback to streaming if download fails
+                await self.audio_service.play_audio(interaction.guild, url, after_cb=lambda e: self.check_queue(interaction), title=title, duration=duration, headers=headers, original_url=original_url)
+        else:
+            # Stream for others
+            await self.audio_service.play_audio(interaction.guild, url, after_cb=lambda e: self.check_queue(interaction), title=title, duration=duration, headers=headers, original_url=original_url)
+
     def __init__(self, client):
         self.client = client
         self.audio_service = client.audio_service
         self.progress_tasks = {}  # guild_id -> asyncio.Task
         self.active_messages = {}  # guild_id -> discord.Message
+
+    @commands.Cog.listener()
+    async def on_voice_state_update(self, member, before, after):
+        """Trigger cleanup if the bot is kicked or leaves a voice channel."""
+        if member.id == self.client.user.id:
+            # Bot was in a channel but is no longer in one
+            if before.channel is not None and after.channel is None:
+                # Disconnected
+                asyncio.create_task(self._robust_session_cleanup())
+
+    def _get_ydl_opts(self, **overrides) -> Dict[str, Any]:
+        """Generate YoutubeDL options with central config and optional overrides."""
+        opts = {
+            'format': 'bestaudio/best',
+            'quiet': True,
+            'no_warnings': True,
+            'js_runtimes': {'node': {'path': self.client.paths['node_exe']}},
+            'extractor_args': {
+                'tiktok': self.client.config.get('tiktok_args', {})
+            }
+        }
+        opts.update(overrides)
+        return opts
     
     def check_queue(self, interaction: discord.Interaction):
-        async def inner_check_queue():
-            guild_id = interaction.guild.id
-            queue = self.audio_service.get_queue(guild_id)
-            if queue:
-                # Cancel previous progress task
-                if guild_id in self.progress_tasks:
-                    self.progress_tasks[guild_id].cancel()
-                    del self.progress_tasks[guild_id]
+        """Thread-safe call to process the next track in queue."""
+        asyncio.run_coroutine_threadsafe(self._check_queue_async(interaction), self.client.loop)
 
-                next_video = queue.pop(0)
-                await self.audio_service.play_audio(interaction.guild, next_video['url'], after_cb=lambda e: self.check_queue(interaction), title=next_video['title'], duration=next_video.get('duration'))
-                
-                # Auto disconnect check
-                asyncio.create_task(self.audio_service.dc_if_empty(discord.utils.get(self.client.voice_clients, guild=interaction.guild)))
-                
-                embed = discord.Embed(title=t('yt_play_title', guild_id=guild_id), description=t('yt_playing_desc', title=next_video["title"], guild_id=guild_id), color=discord.Color.green())
-                embed.add_field(name=t('yt_progress', guild_id=guild_id), value=self.audio_service.create_progress_bar(guild_id), inline=False)
-                embed.set_author(name=t('help_requested_by', user=interaction.user.name, guild_id=guild_id), icon_url=interaction.user.avatar)
-                embed.set_footer(text=get_current_version(self.client, guild_id=guild_id))
-                
-                view = MusicControlView(self, guild_id)
-                message = await interaction.channel.send(embed=embed, view=view)
-                self.active_messages[guild_id] = message
-                
-                # Start progress update loop
-                self.progress_tasks[guild_id] = asyncio.create_task(self._update_progress_loop(guild_id, message, embed))
+    async def _check_queue_async(self, interaction: discord.Interaction):
+        """Background task to process the music queue."""
+        guild_id = interaction.guild.id
+        queue = self.audio_service.get_queue(guild_id)
+        
+        if queue:
+            # Cleanup old message ONLY if we have a NEW track to play
+            if guild_id in self.active_messages:
+                try:
+                    await self.active_messages[guild_id].delete()
+                    del self.active_messages[guild_id]
+                except:
+                    pass
 
-        self.client.loop.create_task(inner_check_queue())
+            # Cancel previous progress task
+            if guild_id in self.progress_tasks:
+                self.progress_tasks[guild_id].cancel()
+                del self.progress_tasks[guild_id]
+
+            next_video = queue.pop(0)
+            await self._play_track(interaction, next_video)
+            
+            # Auto disconnect check
+            asyncio.create_task(self.audio_service.dc_if_empty(discord.utils.get(self.client.voice_clients, guild=interaction.guild)))
+            
+            embed = discord.Embed(title=t('audio_play_title', guild_id=guild_id), description=t('audio_playing_desc', title=next_video["title"], guild_id=guild_id), color=discord.Color.green())
+            embed.add_field(name=t('audio_progress', guild_id=guild_id), value=self.audio_service.create_progress_bar(guild_id), inline=False)
+            embed.set_author(name=t('help_requested_by', user=interaction.user.name, guild_id=guild_id), icon_url=interaction.user.avatar)
+            embed.set_footer(text=get_current_version(self.client, guild_id=guild_id))
+            
+            view = MusicControlView(self, guild_id)
+            message = await interaction.channel.send(embed=embed, view=view)
+            self.active_messages[guild_id] = message
+            
+            # Start progress update loop
+            self.progress_tasks[guild_id] = asyncio.create_task(self._update_progress_loop(guild_id, message, embed))
 
     async def _update_progress_loop(self, guild_id, message, embed):
         """Background task to update the progress bar in the embed."""
@@ -277,7 +399,7 @@ class Video_slash(commands.Cog):
 
         if not interaction.user.voice:
             guild_id = interaction.guild.id if interaction.guild else None
-            embed = discord.Embed(title=t('yt_error_title', guild_id=guild_id), description=t('yt_error_not_in_voice', guild_id=guild_id), color=discord.Color.red())
+            embed = discord.Embed(title=t('audio_error_title', guild_id=guild_id), description=t('audio_error_not_in_voice', guild_id=guild_id), color=discord.Color.red())
             embed.set_author(name=t('help_requested_by', user=interaction.user.name, guild_id=guild_id), icon_url=interaction.user.avatar)
             embed.set_footer(text=get_current_version(self.client, guild_id=guild_id))
             return await interaction.response.send_message(embed=embed, ephemeral=True)
@@ -287,11 +409,7 @@ class Video_slash(commands.Cog):
         voice = await self.audio_service.connect_to_vocal(interaction.user.voice.channel)
         if not voice: return
 
-        ydl_options = {
-            'format': 'bestaudio/best',
-            'noplaylist': True,
-            'js_runtimes': {'node': {'path': self.client.paths['node_exe']}}
-        }
+        ydl_options = self._get_ydl_opts(noplaylist=True)
         try:
             with YoutubeDL(ydl_options) as ydl:
                 info = ydl.extract_info(url, download=False)
@@ -301,38 +419,20 @@ class Video_slash(commands.Cog):
             queue = self.audio_service.get_queue(interaction.guild.id)
 
             if not (self.audio_service.is_playing(interaction.guild) or self.audio_service.is_paused(interaction.guild)):
-                duration = info.get('duration')
+                track_info = {
+                    'title': title,
+                    'url': audio_url,
+                    'duration': info.get('duration'),
+                    'headers': info.get('http_headers'),
+                    'original_url': url,
+                    'id': info.get('id')
+                }
                 
-                # Check for short-form content to use download strategy (TikTok, X, Instagram, etc.)
-                # This avoids 403/Forbidden errors with ffmpeg streaming
-                is_short_form = any(domain in url for domain in ['tiktok.com', 'x.com', 'twitter.com', 'instagram.com'])
-                extractor_short_form = any(domain in info.get('extractor', '').lower() for domain in ['tiktok', 'twitter', 'instagram'])
+                await self._play_track(interaction, track_info)
 
-                if is_short_form or extractor_short_form:
-                    # Download for Short Form Content
-                    if not os.path.exists("downloads"):
-                        os.makedirs("downloads")
-                    
-                    with YoutubeDL({'outtmpl': f'downloads/%(id)s.%(ext)s', 'quiet': True, 'no_warnings': True, 'format': 'bestaudio/best'}) as ydl_down:
-                        info = ydl_down.extract_info(url, download=True)
-                        audio_url = ydl_down.prepare_filename(info)
-                    
-                    # Play local file
-                    def cleanup(error):
-                        self.check_queue(interaction)
-                        try:
-                            if os.path.exists(audio_url):
-                                os.remove(audio_url)
-                        except Exception as e:
-                            print(f"Error removing file {audio_url}: {e}")
-
-                    await self.audio_service.play_audio(interaction.guild, audio_url, is_local=True, after_cb=cleanup, title=title, duration=duration)
-                else:
-                    # Stream for others
-                    await self.audio_service.play_audio(interaction.guild, audio_url, after_cb=lambda e: self.check_queue(interaction), title=title, duration=duration)
-
-                embed = discord.Embed(title=t('yt_play_title', guild_id=interaction.guild.id), description=t('yt_playing_desc', title=title, guild_id=interaction.guild.id), color=discord.Color.green())
-                embed.add_field(name=t('yt_progress', guild_id=interaction.guild.id), value=self.audio_service.create_progress_bar(interaction.guild.id), inline=False)
+                guild_id = interaction.guild.id
+                embed = discord.Embed(title=t('audio_play_title', guild_id=guild_id), description=t('audio_playing_desc', title=title, guild_id=guild_id), color=discord.Color.green())
+                embed.add_field(name=t('audio_progress', guild_id=interaction.guild.id), value=self.audio_service.create_progress_bar(interaction.guild.id), inline=False)
                 
                 embed.set_author(name=t('help_requested_by', user=interaction.user.name, guild_id=interaction.guild.id), icon_url=interaction.user.avatar)
                 embed.set_footer(text=get_current_version(self.client, guild_id=interaction.guild.id))
@@ -346,14 +446,21 @@ class Video_slash(commands.Cog):
                     self.progress_tasks[interaction.guild.id].cancel()
                 self.progress_tasks[interaction.guild.id] = asyncio.create_task(self._update_progress_loop(interaction.guild.id, message, embed))
             else:
-                queue.append({'title': title, 'url': audio_url, 'duration': info.get('duration')})
-                embed = discord.Embed(title=t('yt_queue_add_title', guild_id=interaction.guild.id), description=t('yt_queue_add_desc', title=title, guild_id=interaction.guild.id), color=discord.Color.blue())
+                queue.append({
+                    'title': title, 
+                    'url': audio_url, 
+                    'duration': info.get('duration'), 
+                    'headers': info.get('http_headers'),
+                    'original_url': url,
+                    'id': info.get('id')
+                })
+                embed = discord.Embed(title=t('audio_queue_add_title', guild_id=interaction.guild.id), description=t('audio_queue_add_desc', title=title, guild_id=interaction.guild.id), color=discord.Color.blue())
                 embed.set_author(name=t('help_requested_by', user=interaction.user.name, guild_id=interaction.guild.id), icon_url=interaction.user.avatar)
                 embed.set_footer(text=get_current_version(self.client, guild_id=interaction.guild.id))
                 await interaction.followup.send(embed=embed)
 
         except Exception as e:
-            embed = discord.Embed(title=t('yt_error_title', guild_id=interaction.guild.id), description=t('yt_error_general', error=str(e), guild_id=interaction.guild.id), color=discord.Color.red())
+            embed = discord.Embed(title=t('audio_error_title', guild_id=interaction.guild.id), description=t('audio_error_general', error=str(e), guild_id=interaction.guild.id), color=discord.Color.red())
             embed.set_author(name=t('help_requested_by', user=interaction.user.name, guild_id=interaction.guild.id), icon_url=interaction.user.avatar)
             embed.set_footer(text=get_current_version(self.client, guild_id=interaction.guild.id))
             await interaction.followup.send(embed=embed, ephemeral=True)
@@ -363,7 +470,7 @@ class Video_slash(commands.Cog):
     async def msearch(self, interaction: discord.Interaction, query: str):
         if not interaction.user.voice:
             guild_id = interaction.guild.id if interaction.guild else None
-            embed = discord.Embed(title=t('yt_error_title', guild_id=guild_id), description=t('yt_error_not_in_voice', guild_id=guild_id), color=discord.Color.red())
+            embed = discord.Embed(title=t('audio_error_title', guild_id=guild_id), description=t('audio_error_not_in_voice', guild_id=guild_id), color=discord.Color.red())
             embed.set_author(name=t('help_requested_by', user=interaction.user.name, guild_id=guild_id), icon_url=interaction.user.avatar)
             embed.set_footer(text=get_current_version(self.client, guild_id=guild_id))
             return await interaction.response.send_message(embed=embed, ephemeral=True)
@@ -372,28 +479,17 @@ class Video_slash(commands.Cog):
         voice = await self.audio_service.connect_to_vocal(interaction.user.voice.channel)
         if not voice: return
 
-        search_options = {
-            'quiet': True,
-            'no_warnings': True,
-            'extract_flat': True,
-            'noplaylist': True,
-            'js_runtimes': {'node': {'path': self.client.paths['node_exe']}}
-        }
-        play_options = {
-            'format': 'bestaudio/best',
-            'quiet': True,
-            'no_warnings': True,
-            'skip_unavailable_fragments': True,
-            'noplaylist': True,
-            'js_runtimes': {'node': {'path': self.client.paths['node_exe']}}
-        }
-
+        search_options = self._get_ydl_opts(
+            extract_flat=True,
+            noplaylist=True
+        )
+        # ...
         try:
             with YoutubeDL(search_options) as ydl:
                 info = ydl.extract_info(f'ytsearch10:{query}', download=False)
             
             if not info or 'entries' not in info:
-                embed = discord.Embed(title=t('yt_search_results_title', guild_id=interaction.guild.id), description=t('yt_search_no_results', guild_id=interaction.guild.id), color=discord.Color.orange())
+                embed = discord.Embed(title=t('audio_search_results_title', guild_id=interaction.guild.id), description=t('audio_search_no_results', guild_id=interaction.guild.id), color=discord.Color.orange())
                 embed.set_author(name=t('help_requested_by', user=interaction.user.name, guild_id=interaction.guild.id), icon_url=interaction.user.avatar)
                 embed.set_footer(text=get_current_version(self.client, guild_id=interaction.guild.id))
                 return await interaction.followup.send(embed=embed, ephemeral=True)
@@ -401,20 +497,20 @@ class Video_slash(commands.Cog):
             videos = [v for v in info.get('entries', []) if v]
             
             if not videos:
-                embed = discord.Embed(title=t('yt_search_results_title', guild_id=interaction.guild.id), description=t('yt_search_invalid_video', guild_id=interaction.guild.id), color=discord.Color.orange())
+                embed = discord.Embed(title=t('audio_search_results_title', guild_id=interaction.guild.id), description=t('audio_search_invalid_video', guild_id=interaction.guild.id), color=discord.Color.orange())
                 embed.set_author(name=t('help_requested_by', user=interaction.user.name, guild_id=interaction.guild.id), icon_url=interaction.user.avatar)
                 embed.set_footer(text=get_current_version(self.client, guild_id=interaction.guild.id))
                 return await interaction.followup.send(embed=embed, ephemeral=True)
 
 
             await interaction.followup.send(
-                content=t('yt_search_results_title', guild_id=interaction.guild.id),
-                view=YoutubeSearchSelectView(videos, self),
+                content=t('audio_search_results_title', guild_id=interaction.guild.id),
+                view=AudioPlayerSearchSelectView(videos, self),
                 ephemeral=True
             )
 
         except Exception as e:
-            embed = discord.Embed(title=t('yt_error_title', guild_id=interaction.guild.id if interaction.guild else None), description=t('yt_search_error_general', error=str(e), guild_id=interaction.guild.id if interaction.guild else None), color=discord.Color.red())
+            embed = discord.Embed(title=t('audio_error_title', guild_id=interaction.guild.id if interaction.guild else None), description=t('audio_search_error_general', error=str(e), guild_id=interaction.guild.id if interaction.guild else None), color=discord.Color.red())
             embed.set_author(name=t('help_requested_by', user=interaction.user.name, guild_id=interaction.guild.id if interaction.guild else None), icon_url=interaction.user.avatar)
             embed.set_footer(text=get_current_version(self.client, guild_id=interaction.guild.id if interaction.guild else None))
             await interaction.followup.send(embed=embed, ephemeral=True)
@@ -428,29 +524,21 @@ class Video_slash(commands.Cog):
                 self.progress_tasks[interaction.guild.id].cancel()
                 del self.progress_tasks[interaction.guild.id]
 
-            # Delete active message if tracked
-            if interaction.guild.id in self.active_messages:
-                try:
-                    await self.active_messages[interaction.guild.id].delete()
-                except:
-                    pass
-                del self.active_messages[interaction.guild.id]
-
-            # Stop and get next
+            # Stop and get next (this triggers check_queue -> _check_queue_async)
             voice = discord.utils.get(self.client.voice_clients, guild=interaction.guild)
             if voice:
                 voice.stop()
             
             queue = self.audio_service.get_queue(interaction.guild.id)
             next_track = queue[0] if queue else None
-            desc = t('yt_skip_next', title=next_track['title'], guild_id=interaction.guild.id) if next_track else t('yt_skip_none', guild_id=interaction.guild.id)
+            desc = t('audio_skip_next', title=next_track['title'], guild_id=interaction.guild.id) if next_track else t('audio_skip_none', guild_id=interaction.guild.id)
             
-            embed = discord.Embed(title=t('yt_skip_title', guild_id=interaction.guild.id), description=desc, color=discord.Color.orange())
+            embed = discord.Embed(title=t('audio_skip_title', guild_id=interaction.guild.id), description=desc, color=discord.Color.orange())
             embed.set_author(name=t('help_requested_by', user=interaction.user.name, guild_id=interaction.guild.id), icon_url=interaction.user.avatar)
             embed.set_footer(text=get_current_version(self.client, guild_id=interaction.guild.id))
             await interaction.response.send_message(embed=embed)
         else:
-            embed = discord.Embed(title=t('yt_error_title', guild_id=interaction.guild.id), description=t('yt_error_playing_none', guild_id=interaction.guild.id), color=discord.Color.red())
+            embed = discord.Embed(title=t('audio_error_title', guild_id=interaction.guild.id), description=t('audio_error_playing_none', guild_id=interaction.guild.id), color=discord.Color.red())
             embed.set_author(name=t('help_requested_by', user=interaction.user.name, guild_id=interaction.guild.id), icon_url=interaction.user.avatar)
             embed.set_footer(text=get_current_version(self.client, guild_id=interaction.guild.id))
             await interaction.response.send_message(embed=embed, ephemeral=True)
@@ -464,16 +552,10 @@ class Video_slash(commands.Cog):
                 del self.progress_tasks[guild_id]
 
             self.audio_service.stop(interaction.guild)
+            # Session cleanup
+            asyncio.create_task(self._robust_session_cleanup())
             
-            # Delete active message if tracked
-            if guild_id in self.active_messages:
-                try:
-                    await self.active_messages[guild_id].delete()
-                except:
-                    pass
-                del self.active_messages[guild_id]
-
-            embed = discord.Embed(title=t('yt_stop_title', guild_id=guild_id), description=t('yt_stop_desc', guild_id=guild_id), color=discord.Color.red())
+            embed = discord.Embed(title=t('audio_stop_title', guild_id=guild_id), description=t('audio_stop_desc', guild_id=guild_id), color=discord.Color.red())
             embed.set_author(name=t('help_requested_by', user=interaction.user.name, guild_id=guild_id), icon_url=interaction.user.avatar)
             embed.set_footer(text=get_current_version(self.client, guild_id=guild_id))
             await interaction.response.send_message(embed=embed)
@@ -483,12 +565,12 @@ class Video_slash(commands.Cog):
     @app_commands.command(name="mpause", description="Pause the video/audio")
     async def mpause(self, interaction: discord.Interaction):
         if self.audio_service.pause(interaction.guild):
-            embed = discord.Embed(title=t('yt_pause_title', guild_id=interaction.guild.id), description=t('yt_pause_desc', guild_id=interaction.guild.id), color=discord.Color.orange())
+            embed = discord.Embed(title=t('audio_pause_title', guild_id=interaction.guild.id), description=t('audio_pause_desc', guild_id=interaction.guild.id), color=discord.Color.orange())
             embed.set_author(name=t('help_requested_by', user=interaction.user.name, guild_id=interaction.guild.id), icon_url=interaction.user.avatar)
             embed.set_footer(text=get_current_version(self.client, guild_id=interaction.guild.id))
             await interaction.response.send_message(embed=embed)
         else:
-            embed = discord.Embed(title=t('yt_error_title', guild_id=interaction.guild.id), description=t('yt_error_already_paused', guild_id=interaction.guild.id), color=discord.Color.red())
+            embed = discord.Embed(title=t('audio_error_title', guild_id=interaction.guild.id), description=t('audio_error_already_paused', guild_id=interaction.guild.id), color=discord.Color.red())
             embed.set_author(name=t('help_requested_by', user=interaction.user.name, guild_id=interaction.guild.id), icon_url=interaction.user.avatar)
             embed.set_footer(text=get_current_version(self.client, guild_id=interaction.guild.id))
             await interaction.response.send_message(embed=embed, ephemeral=True)
@@ -496,12 +578,12 @@ class Video_slash(commands.Cog):
     @app_commands.command(name="mresume", description="Resume the video/audio")
     async def mresume(self, interaction: discord.Interaction):
         if self.audio_service.resume(interaction.guild):
-            embed = discord.Embed(title=t('yt_resume_title', guild_id=interaction.guild.id), description=t('yt_resume_desc', guild_id=interaction.guild.id), color=discord.Color.green())
+            embed = discord.Embed(title=t('audio_resume_title', guild_id=interaction.guild.id), description=t('audio_resume_desc', guild_id=interaction.guild.id), color=discord.Color.green())
             embed.set_author(name=t('help_requested_by', user=interaction.user.name, guild_id=interaction.guild.id), icon_url=interaction.user.avatar)
             embed.set_footer(text=get_current_version(self.client, guild_id=interaction.guild.id))
             await interaction.response.send_message(embed=embed)
         else:
-            embed = discord.Embed(title=t('yt_error_title', guild_id=interaction.guild.id), description=t('yt_error_not_paused', guild_id=interaction.guild.id), color=discord.Color.red())
+            embed = discord.Embed(title=t('audio_error_title', guild_id=interaction.guild.id), description=t('audio_error_not_paused', guild_id=interaction.guild.id), color=discord.Color.red())
             embed.set_author(name=t('help_requested_by', user=interaction.user.name, guild_id=interaction.guild.id), icon_url=interaction.user.avatar)
             embed.set_footer(text=get_current_version(self.client, guild_id=interaction.guild.id))
             await interaction.response.send_message(embed=embed, ephemeral=True)
@@ -510,10 +592,10 @@ class Video_slash(commands.Cog):
     async def mqueue(self, interaction: discord.Interaction):
         queue = self.audio_service.get_queue(interaction.guild.id)
         if not queue:
-            embed = discord.Embed(title=t('yt_queue_add_title', guild_id=interaction.guild.id), description=t('yt_queue_empty', guild_id=interaction.guild.id), color=discord.Color.orange())
+            embed = discord.Embed(title=t('audio_queue_add_title', guild_id=interaction.guild.id), description=t('audio_queue_empty', guild_id=interaction.guild.id), color=discord.Color.orange())
         else:
             queue_list = "\n".join([f"**{i+1}.** {v['title']}" for i, v in enumerate(queue)])
-            embed = discord.Embed(title=t('yt_queue_list_title', guild_id=interaction.guild.id), description=t('yt_queue_list_desc', list=queue_list, guild_id=interaction.guild.id), color=discord.Color.blue())
+            embed = discord.Embed(title=t('audio_queue_list_title', guild_id=interaction.guild.id), description=t('audio_queue_list_desc', list=queue_list, guild_id=interaction.guild.id), color=discord.Color.blue())
         
         embed.set_author(name=t('help_requested_by', user=interaction.user.name, guild_id=interaction.guild.id), icon_url=interaction.user.avatar)
         embed.set_footer(text=get_current_version(self.client, guild_id=interaction.guild.id))
@@ -522,7 +604,7 @@ class Video_slash(commands.Cog):
     @app_commands.command(name="mclearqueue", description="Clear the queue")
     async def mclearqueue(self, interaction: discord.Interaction):
         self.audio_service.clear_queue(interaction.guild.id)
-        embed = discord.Embed(title=t('yt_queue_add_title', guild_id=interaction.guild.id), description=t('yt_queue_cleared', guild_id=interaction.guild.id), color=discord.Color.green())
+        embed = discord.Embed(title=t('audio_queue_add_title', guild_id=interaction.guild.id), description=t('audio_queue_cleared', guild_id=interaction.guild.id), color=discord.Color.green())
         embed.set_author(name=t('help_requested_by', user=interaction.user.name, guild_id=interaction.guild.id), icon_url=interaction.user.avatar)
         embed.set_footer(text=get_current_version(self.client, guild_id=interaction.guild.id))
         await interaction.response.send_message(embed=embed)
@@ -533,7 +615,7 @@ class Video_slash(commands.Cog):
         guild_id = interaction.guild.id
         self.audio_service.loop_states[guild_id] = not self.audio_service.loop_states.get(guild_id, False)
         is_loop = self.audio_service.loop_states[guild_id]
-        embed = discord.Embed(title=t('yt_loop_title', guild_id=guild_id), description=t('yt_loop_enabled', guild_id=guild_id) if is_loop else t('yt_loop_disabled', guild_id=guild_id), color=discord.Color.green() if is_loop else discord.Color.red())
+        embed = discord.Embed(title=t('audio_loop_title', guild_id=guild_id), description=t('audio_loop_enabled', guild_id=guild_id) if is_loop else t('audio_loop_disabled', guild_id=guild_id), color=discord.Color.green() if is_loop else discord.Color.red())
         embed.set_author(name=t('help_requested_by', user=interaction.user.name, guild_id=guild_id), icon_url=interaction.user.avatar)
         embed.set_footer(text=get_current_version(self.client, guild_id=guild_id))
         await interaction.response.send_message(embed=embed)
@@ -543,11 +625,7 @@ class Video_slash(commands.Cog):
     async def maddqueue(self, interaction: discord.Interaction, url: str):
         await interaction.response.defer(ephemeral=False)
 
-        ydl_options = {
-            'format': 'bestaudio/best',
-            'noplaylist': True,
-            'js_runtimes': {'node': {'path': self.client.paths['node_exe']}}
-        }
+        ydl_options = self._get_ydl_opts(noplaylist=True)
         try:
             with YoutubeDL(ydl_options) as ydl:
                 info = ydl.extract_info(url, download=False)
@@ -555,7 +633,13 @@ class Video_slash(commands.Cog):
             title = info.get('title', url)
 
             queue = self.audio_service.get_queue(interaction.guild.id)
-            queue.append({'title': title, 'url': audio_url})
+            queue.append({
+                'title': title, 
+                'url': audio_url, 
+                'headers': info.get('http_headers'),
+                'original_url': url,
+                'id': info.get('id')
+            })
 
             embed = discord.Embed(title=t('music_addqueue_title', guild_id=interaction.guild.id), description=t('music_addqueue_desc', title=title, position=len(queue), guild_id=interaction.guild.id), color=discord.Color.blue())
             embed.set_author(name=t('help_requested_by', user=interaction.user.name, guild_id=interaction.guild.id), icon_url=interaction.user.avatar)
@@ -563,7 +647,7 @@ class Video_slash(commands.Cog):
             await interaction.followup.send(embed=embed)
 
         except Exception as e:
-            embed = discord.Embed(title=t('yt_error_title', guild_id=interaction.guild.id), description=t('yt_error_general', error=str(e), guild_id=interaction.guild.id), color=discord.Color.red())
+            embed = discord.Embed(title=t('audio_error_title', guild_id=interaction.guild.id), description=t('audio_error_general', error=str(e), guild_id=interaction.guild.id), color=discord.Color.red())
             embed.set_author(name=t('help_requested_by', user=interaction.user.name, guild_id=interaction.guild.id), icon_url=interaction.user.avatar)
             embed.set_footer(text=get_current_version(self.client, guild_id=interaction.guild.id))
             await interaction.followup.send(embed=embed, ephemeral=True)
@@ -573,7 +657,7 @@ class Video_slash(commands.Cog):
     async def mremovequeue(self, interaction: discord.Interaction, position: int):
         queue = self.audio_service.get_queue(interaction.guild.id)
         if not queue:
-            embed = discord.Embed(title=t('yt_queue_add_title', guild_id=interaction.guild.id), description=t('yt_queue_empty', guild_id=interaction.guild.id), color=discord.Color.orange())
+            embed = discord.Embed(title=t('audio_queue_add_title', guild_id=interaction.guild.id), description=t('audio_queue_empty', guild_id=interaction.guild.id), color=discord.Color.orange())
             embed.set_author(name=t('help_requested_by', user=interaction.user.name, guild_id=interaction.guild.id), icon_url=interaction.user.avatar)
             embed.set_footer(text=get_current_version(self.client, guild_id=interaction.guild.id))
             return await interaction.response.send_message(embed=embed, ephemeral=True)
@@ -595,7 +679,7 @@ class Video_slash(commands.Cog):
     async def mseek(self, interaction: discord.Interaction, minutes: int = 0, seconds: int = 0):
         total_seconds = (minutes * 60) + seconds
         if not self.audio_service.is_playing(interaction.guild) and not self.audio_service.is_paused(interaction.guild):
-            embed = discord.Embed(title=t('yt_error_title', guild_id=interaction.guild.id), description=t('yt_error_playing_none', guild_id=interaction.guild.id), color=discord.Color.red())
+            embed = discord.Embed(title=t('audio_error_title', guild_id=interaction.guild.id), description=t('audio_error_playing_none', guild_id=interaction.guild.id), color=discord.Color.red())
             embed.set_author(name=t('help_requested_by', user=interaction.user.name, guild_id=interaction.guild.id), icon_url=interaction.user.avatar)
             embed.set_footer(text=get_current_version(self.client, guild_id=interaction.guild.id))
             return await interaction.response.send_message(embed=embed, ephemeral=True)
@@ -605,13 +689,13 @@ class Video_slash(commands.Cog):
         # Check if requested time is within track duration
         track = self.audio_service.current_track.get(interaction.guild.id)
         if track and track.get('duration') and total_seconds > track['duration']:
-            embed = discord.Embed(title=t('yt_error_title', guild_id=interaction.guild.id), description=t('music_seek_error_duration', duration=self.audio_service.format_time(track['duration']), guild_id=interaction.guild.id), color=discord.Color.red())
+            embed = discord.Embed(title=t('audio_error_title', guild_id=interaction.guild.id), description=t('music_seek_error_duration', duration=self.audio_service.format_time(track['duration']), guild_id=interaction.guild.id), color=discord.Color.red())
             return await interaction.followup.send(embed=embed, ephemeral=True)
 
         await self.audio_service.seek(interaction.guild, total_seconds, lambda e: self.check_queue(interaction))
         
         embed = discord.Embed(title=t('music_seek_title', guild_id=interaction.guild.id), description=t('music_seek_desc', time=self.audio_service.format_time(total_seconds), guild_id=interaction.guild.id), color=discord.Color.green())
-        embed.add_field(name=t('yt_progress', guild_id=interaction.guild.id), value=self.audio_service.create_progress_bar(interaction.guild.id), inline=False)
+        embed.add_field(name=t('audio_progress', guild_id=interaction.guild.id), value=self.audio_service.create_progress_bar(interaction.guild.id), inline=False)
         embed.set_author(name=t('help_requested_by', user=interaction.user.name, guild_id=interaction.guild.id), icon_url=interaction.user.avatar)
         embed.set_footer(text=get_current_version(self.client, guild_id=interaction.guild.id))
         await interaction.followup.send(embed=embed)
@@ -619,21 +703,25 @@ class Video_slash(commands.Cog):
     @app_commands.command(name="mprevious", description="Play the previous track")
     async def mprevious(self, interaction: discord.Interaction):
         await interaction.response.defer()
+        
+        pos = self.audio_service.get_current_position(interaction.guild.id)
+        is_playing = self.audio_service.is_playing(interaction.guild) or self.audio_service.is_paused(interaction.guild)
+        
+        if pos > 5 or (not is_playing and self.audio_service.current_track.get(interaction.guild.id)):
+            await self.audio_service.seek(interaction.guild, 0, lambda e: self.check_queue(interaction))
+            return await interaction.followup.send(t('music_btn_previous_playing', title=self.audio_service.current_track[interaction.guild.id]['title'], guild_id=interaction.guild.id))
+
         previous = self.audio_service.get_previous(interaction.guild.id)
         if previous:
-            await self.audio_service.play_audio(
-                interaction.guild, previous['url'], after_cb=lambda e: self.check_queue(interaction),
-                title=previous['title']
-            )
+            await self._play_track(interaction, previous)
             embed = discord.Embed(title=t('music_previous_title', guild_id=interaction.guild.id), description=t('music_previous_desc', title=previous['title'], guild_id=interaction.guild.id), color=discord.Color.green())
             embed.set_author(name=t('help_requested_by', user=interaction.user.name, guild_id=interaction.guild.id), icon_url=interaction.user.avatar)
             embed.set_footer(text=get_current_version(self.client, guild_id=interaction.guild.id))
             await interaction.followup.send(embed=embed)
         else:
-            embed = discord.Embed(title=t('music_previous_title', guild_id=interaction.guild.id), description=t('music_previous_error', guild_id=interaction.guild.id), color=discord.Color.red())
-            embed.set_author(name=t('help_requested_by', user=interaction.user.name, guild_id=interaction.guild.id), icon_url=interaction.user.avatar)
-            embed.set_footer(text=get_current_version(self.client, guild_id=interaction.guild.id))
-            await interaction.followup.send(embed=embed, ephemeral=True)
+            # Fallback: Restart current if no history
+            await self.audio_service.seek(interaction.guild, 0, lambda e: self.check_queue(interaction))
+            await interaction.followup.send(t('music_btn_previous_playing', title=self.audio_service.current_track[interaction.guild.id]['title'], guild_id=interaction.guild.id))
 
     @app_commands.command(name="mvolume", description="Set the music volume")
     @app_commands.describe(volume="Volume level (0-200, default is 100)")
@@ -654,4 +742,4 @@ class Video_slash(commands.Cog):
 
 
 async def setup(client):
-    await client.add_cog(Video_slash(client))
+    await client.add_cog(AudioPlayer(client))

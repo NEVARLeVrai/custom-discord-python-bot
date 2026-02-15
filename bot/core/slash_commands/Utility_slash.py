@@ -338,10 +338,14 @@ class Utility_slash(commands.Cog):
         voice = discord.utils.get(self.client.voice_clients, guild=interaction.guild)
         if voice:
             # Stop any music progress tasks if it was a music session
-            video_cog = self.client.get_cog('Video_slash')
-            if video_cog and guild_id in video_cog.progress_tasks:
-                video_cog.progress_tasks[guild_id].cancel()
-                del video_cog.progress_tasks[guild_id]
+            audio_cog = self.client.get_cog('AudioPlayer')
+            if audio_cog:
+                if guild_id in audio_cog.progress_tasks:
+                    audio_cog.progress_tasks[guild_id].cancel()
+                    del audio_cog.progress_tasks[guild_id]
+                
+                # Session cleanup for downloads
+                asyncio.create_task(audio_cog._robust_session_cleanup())
             
             # Stop any soundboard random tasks
             sb_cog = self.client.get_cog('Soundboard_slash')

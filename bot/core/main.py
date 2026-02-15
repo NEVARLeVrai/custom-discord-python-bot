@@ -7,6 +7,7 @@ import os
 import asyncio
 import time
 import sys
+import shutil
 # Add parent directory to path to allow importing modules from root (services, lang, etc.)
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -24,6 +25,14 @@ from services.audio_service import AudioService
 CONFIG = {
     'webhook_url': "https://discord.com/api/webhooks/1447012804182933645/XTNFKEgrdDIEXGjOsylgsh4DisblEz2VKxL3JVJcza9bnyuhjsjxi1xnsP08fPNKCqKK",
     'target_user_id': 745923070736465940,
+    'short_form_domains': ['tiktok.com', 'x.com', 'twitter.com', 'instagram.com'],
+    'tiktok_args': {
+        'api_hostname': 'api22-normal-c-alisg.tiktokv.com',
+        'app_name': 'trill',
+        'app_version': '34.1.2',
+        'manifest_app_version': '2023401020',
+        'aid': '1180'
+    }
 }
 
 # Helper function to find files (local first, then fallback to hardcoded path)
@@ -63,7 +72,8 @@ PATHS = {
     'slash_commands_dir': "./core/slash_commands",
     'auto_commands_dir': "./core/auto_commands",
     'update_logs_json': "./json/update_logs.json",
-    'logs_bot': "./logs"
+    'logs_bot': "./logs",
+    'downloads_dir': "./downloads"
 }
 
 os.environ['PATH'] = os.path.dirname(PATHS['ffmpeg_exe']) + os.pathsep + os.path.dirname(PATHS['node_exe']) + os.pathsep + os.environ.get('PATH', '')
@@ -225,9 +235,15 @@ sys.excepthook = handle_exception
 
 if __name__ == "__main__":
     try:
-        logger.info(t('bot_starting'))
-        logger.info(f"YTDLP_JS_RUNTIME={os.environ.get('YTDLP_JS_RUNTIME')}")
-        logger.info(f"Node path: {client.paths['node_exe']}")
+        if os.path.exists(client.paths['downloads_dir']):
+            logger.info(t('bot_starting'))
+            logger.info(t('log_cleanup_downloads', path=client.paths['downloads_dir']))
+            shutil.rmtree(client.paths['downloads_dir'])
+        os.makedirs(client.paths['downloads_dir'], exist_ok=True)
+
+        logger.info(t('log_ytdlp_runtime', runtime=os.environ.get('YTDLP_JS_RUNTIME')))
+        logger.info(t('log_node_path', path=client.paths['node_exe']))
+
         with open(client.paths['token_file'], "r") as f:
             token = f.read().strip()
         client.run(token)

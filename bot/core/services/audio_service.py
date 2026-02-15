@@ -71,14 +71,18 @@ class AudioService:
         else:
             return await channel.connect()
 
-    async def play_audio(self, guild: discord.Guild, source_url: str, is_local: bool = False, after_cb=None, title: str = None, start_time: int = 0, duration: int = None):
+    async def play_audio(self, guild: discord.Guild, source_url: str, is_local: bool = False, after_cb=None, title: str = None, start_time: int = 0, duration: int = None, headers: Dict[str, str] = None, original_url: str = None):
         """Plays audio from a URL or local path."""
         voice = discord.utils.get(self.client.voice_clients, guild=guild)
         if not voice:
             return
 
+        # Add to history if starting a NEW track (not seeking)
         if guild.id in self.current_track and self.current_track[guild.id] and start_time == 0:
-            self.add_to_history(guild.id, self.current_track[guild.id])
+            # Check if it's actually different from what we are starting
+            curr = self.current_track[guild.id]
+            if curr.get('original_url') != (original_url or source_url):
+                self.add_to_history(guild.id, curr)
 
         if voice.is_playing() or voice.is_paused():
             voice.stop()
@@ -96,6 +100,15 @@ class AudioService:
             before_opts = self.ffmpeg_options['before_options']
             if start_time > 0:
                 before_opts = f'-ss {start_time} {before_opts}'
+
+            # Add headers if provided (User-Agent and Referer are most critical)
+            if headers:
+                if 'User-Agent' in headers:
+                    before_opts += f' -user_agent "{headers["User-Agent"]}"'
+                if 'Referer' in headers:
+                    before_opts += f' -headers "Referer: {headers["Referer"]}\r\n"'
+                # For others, we try to pass them but carefully. 
+                # Most streaming sites only need UA and Referer.
 
             options = {
                 'before_options': before_opts,
@@ -119,7 +132,11 @@ class AudioService:
             self.current_track[guild.id] = {
                 'title': title or source_url, 
                 'url': source_url, 
-                'duration': duration
+                'duration': duration,
+                'headers': headers,
+                'is_local': is_local,
+                'path': source_url if is_local else None,
+                'original_url': original_url or source_url
             }
         elif duration is not None:
             self.current_track[guild.id]['duration'] = duration
@@ -129,7 +146,9 @@ class AudioService:
         if voice:
             voice.stop()
             self.clear_queue(guild.id)
-            if guild.id in self.current_track:
+            if guild.id in self.current_track and self.current_track[guild.id]:
+                # Make sure it's in history before clearing if it's the last one
+                self.add_to_history(guild.id, self.current_track[guild.id])
                 self.current_track[guild.id] = None
 
     def pause(self, guild: discord.Guild):
@@ -198,8 +217,13 @@ class AudioService:
             return False
 
         track = self.current_track[guild.id]
-        await self.play_audio(guild, track['url'], is_local=False, after_cb=after_cb,
-                             title=track['title'], start_time=max(0, seconds), duration=track.get('duration'))
+        is_local = track.get('is_local', False)
+        # For local files, the URL is the local path
+        url = track.get('path') if is_local else track['url']
+        
+        await self.play_audio(guild, url, is_local=is_local, after_cb=after_cb,
+                             title=track['title'], start_time=max(0, seconds), duration=track.get('duration'),
+                             headers=track.get('headers'))
         return True
 
     async def dc_if_empty(self, voice_client: discord.VoiceClient):
@@ -269,8 +293,15 @@ class AudioService:
         guild_id = guild.id if hasattr(guild, 'id') else guild
         pos = self.get_current_position(guild_id)
         new_seek = max(0, pos + delta_seconds)
-        current_track = self.current_track.get(guild_id)
-        if current_track:
+        
+        # Check if new seek is beyond duration
+        track = self.current_track.get(guild_id)
+        if track and track.get('duration') and new_seek >= track['duration']:
+            # If skipping forward beyond duration, just let it finish or call after_cb
+            # But the UI buttons usually expect a seek. For safety, we cap it.
+            new_seek = track['duration'] - 1
+
+        if track:
             await self.seek(guild, new_seek, after_cb=after_cb)
             return new_seek
         return None
