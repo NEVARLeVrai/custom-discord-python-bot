@@ -32,7 +32,7 @@ A complete **Discord bot** with numerous features, developed in **Python** using
 
 - **`/helps`** – Displays all available commands
 - **`/ping`** – Shows the bot's latency in ms
-- **`/version`** or **`/v`** – Displays the bot's version
+- **`/version`** – Displays the bot's version
 - **`/report [message]`** – Report a bug or send feedback
 - **`/stop`** – Stops the bot _(owner only)_
 - **`/sync`** Re-sync slash commands _(owner only)_
@@ -107,7 +107,7 @@ Original messages are deleted and replaced with the optimized link.
 - **`/splay [number]`** – Play a sound (auto joins VC)
 - **`/leave`** – Leave VC
 - **`/sstop`** – Stop sound
-- **`/svolume [0-200]`** – Set soundboard volume _(NEW!)_
+- **`/svolume [0-200]`** – Set soundboard volume
 - **`/srandom`** – Play random sounds every 1–5 min
 - **`/srandomskip`** – Skip current random sound
 - **`/srandomstop`** – Stop random playback
@@ -138,16 +138,16 @@ Supported formats : MP3 / MP4 / M4A / OGG / OPUS / WAV / FLAC / AAC
 
 - **`/mqueue`** – Display the queue
 - **`/mclearqueue`** – Clear the queue
-- **`/maddqueue [URL]`** – Add song to queue without playing _(NEW!)_
-- **`/mremovequeue [position]`** – Remove song from queue _(NEW!)_
+- **`/maddqueue [URL]`** – Add song to queue without playing
+- **`/mremovequeue [position]`** – Remove song from queue
 
 **Advanced Controls:**
 
 - **`/mloop`** – Toggle loop mode
-- **`/mprevious`** – Play the previous track _(NEW! History: 50 tracks)_
-- **`/mseek [minutes] [seconds]`** – Seek to specific time (e.g. `/mseek minutes:1 seconds:30`) _(NEW!)_
-- **`/mvolume [0-200]`** – Set music volume (real-time, no restart) _(NEW!)_
-- **Dynamic Progress Bar** – "Now Playing" embed includes a visual progress bar _(NEW!)_
+- **`/mprevious`** – Play the previous track
+- **`/mseek [minutes] [seconds]`** – Seek to specific time
+- **`/mvolume [0-200]`** – Set music volume (real-time, no restart)
+- **Dynamic Progress Bar** – "Now Playing" embed includes a visual progress bar
 
 **Smart Logic & Stability:**
 
