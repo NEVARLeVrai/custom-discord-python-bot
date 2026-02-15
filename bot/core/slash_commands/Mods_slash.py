@@ -282,9 +282,9 @@ class Mods_slash(commands.Cog):
         for idx, (member, count, m_id) in enumerate(top_warns):
             medal = medals[idx] if idx < len(medals) else f"{idx+1}."
             if member:
-                leaderboard_text += f"{medal} **{member.display_name}** ({member.mention}) - **{count}** warn(s)\n"
+                leaderboard_text += f"{medal} **{member.display_name}** ({member.mention}) - **{count}** {t('mods_warn_suffix')}\n"
             else:
-                leaderboard_text += f"{medal} **<@{m_id}>** ({t('mods_lb_left_server')}) - **{count}** warn(s)\n"
+                leaderboard_text += f"{medal} **<@{m_id}>** ({t('mods_lb_left_server')}) - **{count}** {t('mods_warn_suffix')}\n"
         
         embed.add_field(name="", value=leaderboard_text or t('mods_lb_empty'), inline=False)
         await interaction.followup.send(embed=embed)

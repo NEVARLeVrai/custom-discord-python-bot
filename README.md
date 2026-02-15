@@ -21,9 +21,10 @@ A complete **Discord bot** with numerous features, developed in **Python** using
 
 ## 🚀 Features
 
-### 🌍 Internationalization (New!)
+### 🌍 Internationalization (Full Support)
 
 - **`/setlang [language]`** – Change the bot's language (English `en` or French `fr`) directly in Discord.
+- **Complete Coverage** – All commands, system logs, startup messages, and error responses are fully localized.
 - **Persisted Preference** – The language setting is saved in `bot/json/config.json` and persists across restarts.
 
 ### 🧩 General Commands
@@ -105,6 +106,7 @@ Original messages are deleted and replaced with the optimized link.
 - **`/splay [number]`** – Play a sound (auto joins VC)
 - **`/sleave`** – Leave VC
 - **`/sstop`** – Stop sound
+- **`/svolume [0-200]`** – Set soundboard volume _(NEW!)_
 - **`/srandom`** – Play random sounds every 1–5 min
 - **`/srandomskip`** – Skip current random sound
 - **`/srandomstop`** – Stop random playback
@@ -114,12 +116,37 @@ Supported formats : MP3 / MP4 / M4A / OGG / OPUS / WAV / FLAC / AAC
 
 ---
 
+### 🎵 Music Player (yt-dlp) - **MAJOR UPDATE!**
 
-### 📺 Video & Audio Player (yt-dlp)
+**New Interactive UI with Buttons:**
 
-- **`/play [URL]`** – Play a video or audio from any supported site (YouTube, TikTok, X, etc.)
-- **`/search [query]`** – Search and play (YouTube, TikTok, etc.)
-- **`/skip`**, **`/stopm`**, **`/pause`**, **`/resume`**, **`/queue`**, **`/clearq`**, **`/loop`**, **`/leave`** – Manage playback
+- ⏮️ Previous | ⏯️ Play/Pause | ⏭️ Skip | 🔁 Loop
+- ⏪ -15s | ⏩ +15s | 📋 Queue | ⏹️ Stop
+
+**Playback Commands:**
+
+- **`/mplay [URL]`** – Play a video or audio from any supported site (YouTube, TikTok, X, etc.)
+- **`/msearch [query]`** – Search and play with interactive menu
+- **`/mskip`** – Skip the current track
+- **`/mstop`** – Stop playback and clear queue
+- **`/mpause`** – Pause the current track
+- **`/mresume`** – Resume playback
+- **`/mleave`** – Disconnect from voice channel
+
+**Queue Management:**
+
+- **`/mqueue`** – Display the queue
+- **`/mclearqueue`** – Clear the queue
+- **`/maddqueue [URL]`** – Add song to queue without playing _(NEW!)_
+- **`/mremovequeue [position]`** – Remove song from queue _(NEW!)_
+
+**Advanced Controls:**
+
+- **`/mloop`** – Toggle loop mode
+- **`/mprevious`** – Play the previous track _(NEW! History: 50 tracks)_
+- **`/mseek [minutes] [seconds]`** – Seek to specific time (e.g. `/mseek minutes:1 seconds:30`) _(NEW!)_
+- **`/mvolume [0-200]`** – Set music volume (real-time, no restart) _(NEW!)_
+- **Dynamic Progress Bar** – "Now Playing" embed includes a visual progress bar _(NEW!)_
 
 Supported platforms: [see full list](https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md) (YouTube, TikTok, X, Facebook, SoundCloud, Twitch, Vimeo, etc.)
 
@@ -192,16 +219,19 @@ The bot automatically installs these packages from `bot/core/requirements.txt`:
 **Current configuration:** The bot reads the token from a file path specified in `bot/core/main.py` (line 31).
 
 **Default path:**
+
 ```python
 'token_file': "C:/Users/Danie/Mon Drive/Autres/Bot Python Discord/token.txt"
 ```
 
 **To configure:**
+
 1. Edit `bot/core/main.py` line 31 with your desired path, OR
 2. Create a `token.txt` file at the path specified in `main.py`
 3. Put your Discord token inside (just the token, nothing else)
 
 **Example `token.txt`:**
+
 ```
 MTIzNDU2Nzg5MDEyMzQ1Njc4.GhIjKl.MnOpQrStUvWxYz1234567890AbCdEfGhIjKlMnOp
 ```
@@ -213,6 +243,7 @@ MTIzNDU2Nzg5MDEyMzQ1Njc4.GhIjKl.MnOpQrStUvWxYz1234567890AbCdEfGhIjKlMnOp
 For better portability, you can use a `.env` file in the project root:
 
 **`.env` file:**
+
 ```env
 DISCORD_TOKEN=your_token_here
 GPT_TOKEN=your_gpt_token_here
@@ -249,7 +280,7 @@ chmod +x run.sh
 
 ### Reset Bot
 
-A tool is available to **reset** the bot's data (warns, levels, logs) to zero if needed.
+A comprehensive tool is available to **reset** the bot's data (warns, levels, logs, banned words) and clear cache to zero if needed.
 
 Run:
 
@@ -257,7 +288,7 @@ Run:
 python bot/tools/reset_bot.py
 ```
 
-_Note: This will delete user data but preserve configuration files._
+_Note: This will perform a total cleanup of dynamic data and logs, but will preserve core configurations like `update_logs.json`._
 
 ---
 
@@ -281,14 +312,12 @@ Python-Discord-Bot/
     ├── img/                   # Images / Assets
     ├── Sounds/                # Audio files for Soundboard
     ├── logs/                  # Log files
-    └── tools/                 # Admin scripts (reset_bot.py)
-```
-
+    └── tools/                 # Admin scripts (reset_bot.py, clean_lang.py)
 ---
 
 ## 🧩 Slash Commands
 
-All commands are available as **slash commands** and sync automatically on startup.  
+All commands are available as **slash commands** and sync automatically on startup.
 Use :
 
 - **`/sync`** → Force sync
@@ -330,12 +359,15 @@ All errors are also logged to the console with full tracebacks.
 Use :
 
 ```
+
 /report [message]
+
 ```
 
-to send feedback or report a bug.  
+to send feedback or report a bug.
 A ticket is automatically sent to the developer via webhook.
 
 ---
 
 **Developed with ❤️ in Python by [NEVAR](https://github.com/NEVARLeVrai)**
+```

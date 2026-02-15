@@ -30,7 +30,7 @@ class Utility_slash(commands.Cog):
         """TTS slash command"""
         if not interaction.user.voice:
             embed = discord.Embed(title=t('audio_error_title'), description=t('audio_not_connected'), color=discord.Color.red())
-            embed.set_author(name=t('requested_by', user=interaction.user.name), icon_url=interaction.user.avatar)
+            embed.set_author(name=t('help_requested_by', user=interaction.user.name), icon_url=interaction.user.avatar)
             embed.set_footer(text=get_current_version(self.client))
             return await interaction.response.send_message(embed=embed, ephemeral=True)
 
@@ -38,8 +38,12 @@ class Utility_slash(commands.Cog):
         voice = await self.client.audio_service.connect_to_vocal(interaction.user.voice.channel)
         if not voice: return
 
-        embed = discord.Embed(title=t('audio_playing'), description=f"Volume: **{vol}**\nLangue: **{lang}**\nDit: **{text}**", color=discord.Color.green())
-        embed.set_author(name=t('requested_by', user=interaction.user.name), icon_url=interaction.user.avatar)
+        embed = discord.Embed(
+            title=t('sb_play_title'), 
+            description=t('tts_success_desc', vol=vol, lang=lang, text=text), 
+            color=discord.Color.green()
+        )
+        embed.set_author(name=t('help_requested_by', user=interaction.user.name), icon_url=interaction.user.avatar)
         embed.set_footer(text=get_current_version(self.client))
         await interaction.followup.send(embed=embed)
         
@@ -75,11 +79,11 @@ class Utility_slash(commands.Cog):
                 gpt_logs_path = self.client.paths['gpt_logs']
                 with open(gpt_logs_path, "a", encoding='utf-8') as f:
                     current_time = datetime.datetime.now()
-                    f.write(f"Date: {current_time.strftime('%Y-%m-%d')}\n")
-                    f.write(f"Heure: {current_time.strftime('%H:%M:%S')}\n")
-                    f.write(f"User: {interaction.user.mention}\n")                
-                    f.write(f"Question: {question}\n")
-                    f.write(f"Réponse: {response}\n")
+                    f.write(f"{t('log_date')}: {current_time.strftime('%Y-%m-%d')}\n")
+                    f.write(f"{t('log_time')}: {current_time.strftime('%H:%M:%S')}\n")
+                    f.write(f"{t('log_user')}: {interaction.user.mention}\n")                
+                    f.write(f"{t('log_question')}: {question}\n")
+                    f.write(f"{t('log_response')}: {response}\n")
                     f.write("-" * 50 + "\n")
             except Exception as e:
                 print(t('gpt_log_error', error=e))
@@ -163,11 +167,11 @@ class Utility_slash(commands.Cog):
                 dalle_logs_path = self.client.paths['dalle_logs']
                 with open(dalle_logs_path, "a", encoding='utf-8') as f:
                     current_time = datetime.datetime.now()
-                    f.write(f"Date: {current_time.strftime('%Y-%m-%d')}\n")
-                    f.write(f"Heure: {current_time.strftime('%H:%M:%S')}\n")
-                    f.write(f"User: {interaction.user.mention}\n")                
-                    f.write(f"Question: {question}\n")
-                    f.write(f"Réponse: {response}\n")
+                    f.write(f"{t('log_date')}: {current_time.strftime('%Y-%m-%d')}\n")
+                    f.write(f"{t('log_time')}: {current_time.strftime('%H:%M:%S')}\n")
+                    f.write(f"{t('log_user')}: {interaction.user.mention}\n")                
+                    f.write(f"{t('log_question')}: {question}\n")
+                    f.write(f"{t('log_response')}: {response}\n")
                     f.write("-" * 50 + "\n")
             except Exception as e:
                 print(t('dalle_log_error', error=e))
@@ -204,7 +208,7 @@ class Utility_slash(commands.Cog):
         responses_count = 16
         response = t(f'magicball_res_{random.randint(1, responses_count)}')
         embed=discord.Embed(title=t('magicball_title'), color=discord.Color.purple())
-        embed.set_author(name=t('requested_by', user=interaction.user.name), icon_url=interaction.user.avatar)
+        embed.set_author(name=t('help_requested_by', user=interaction.user.name), icon_url=interaction.user.avatar)
         embed.add_field(name=t('magicball_question_field'), value=f'{question}')
         embed.add_field(name=t('magicball_response_field'), value=f'{response}')
         embed.set_footer(text=get_current_version(self.client))
@@ -219,7 +223,7 @@ class Utility_slash(commands.Cog):
         responses_count = 11
         response = t(f'hilaire_res_{random.randint(1, responses_count)}')
         embed=discord.Embed(title=t('hilaire_title'), color=discord.Color.purple())
-        embed.set_author(name=t('requested_by', user=interaction.user.name), icon_url=interaction.user.avatar)
+        embed.set_author(name=t('help_requested_by', user=interaction.user.name), icon_url=interaction.user.avatar)
         embed.add_field(name=t('hilaire_field'), value=f'{response}')
         embed.set_footer(text=get_current_version(self.client))
         with open(self.client.paths['hilaire_png'], "rb") as f:
@@ -248,22 +252,22 @@ class Utility_slash(commands.Cog):
         try:
             await channel.send(message)
             embed = discord.Embed(title=t('say_success_title'), description=t('say_success_desc', channel=channel.mention), color=discord.Color.green())
-            embed.set_author(name=t('requested_by', user=interaction.user.name), icon_url=interaction.user.avatar)
+            embed.set_author(name=t('help_requested_by', user=interaction.user.name), icon_url=interaction.user.avatar)
             embed.set_footer(text=get_current_version(self.client))
             await interaction.followup.send(embed=embed, ephemeral=False)
         except discord.Forbidden:
             embed = discord.Embed(title=t('err_forbidden_title'), description=t('say_bot_perm_error', channel=channel.mention), color=discord.Color.red())
-            embed.set_author(name=t('requested_by', user=interaction.user.name), icon_url=interaction.user.avatar)
+            embed.set_author(name=t('help_requested_by', user=interaction.user.name), icon_url=interaction.user.avatar)
             embed.set_footer(text=get_current_version(self.client))
             await interaction.followup.send(embed=embed, ephemeral=True)
         except discord.HTTPException as e:
             embed = discord.Embed(title=t('err_http_title'), description=t('err_http_desc', error=str(e)), color=discord.Color.red())
-            embed.set_author(name=t('requested_by', user=interaction.user.name), icon_url=interaction.user.avatar)
+            embed.set_author(name=t('help_requested_by', user=interaction.user.name), icon_url=interaction.user.avatar)
             embed.set_footer(text=get_current_version(self.client))
             await interaction.followup.send(embed=embed, ephemeral=True)
         except Exception as e:
             embed = discord.Embed(title=t('error'), description=t('mods_unexpected_error', error=str(e)), color=discord.Color.red())
-            embed.set_author(name=t('requested_by', user=interaction.user.name), icon_url=interaction.user.avatar)
+            embed.set_author(name=t('help_requested_by', user=interaction.user.name), icon_url=interaction.user.avatar)
             embed.set_footer(text=get_current_version(self.client))
             await interaction.followup.send(embed=embed, ephemeral=True)
             

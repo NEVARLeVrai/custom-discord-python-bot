@@ -11,15 +11,22 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 # current_dir is .../bot/tools
 # bot_root is .../bot
 bot_root = os.path.dirname(current_dir)
+# Path to bin directory (FFmpeg, Node.js)
+BIN_DIR = os.path.join(bot_root, "bin")
 
 # Paths to data files
 DATA_FILES = [
     os.path.join(bot_root, "json", "warns.json"),
-    os.path.join(bot_root, "json", "levels.json")
+    os.path.join(bot_root, "json", "levels.json"),
+    os.path.join(bot_root, "json", "banned_words.json")
 ]
 
-# Path to log file
-LOG_FILE = os.path.join(bot_root, "logs", "bot.log")
+# Path to log files
+LOG_FILES = [
+    os.path.join(bot_root, "logs", "bot.log"),
+    os.path.join(bot_root, "logs", "gptlogs.txt"),
+    os.path.join(bot_root, "logs", "dallelogs.txt")
+]
 
 def safe_remove(path):
     """Safely remove a file, retrying if locked."""
@@ -75,8 +82,8 @@ def delete_pycache(root_dir):
         print("· No __pycache__ folders found.")
 
 def main():
-    print("⚠️  WARNING: This will delete all warns, levels, and logs. ⚠️")
-    print("Configuration files (banned_words.json, update_logs.json) will be preserved.")
+    print("⚠️  WARNING: This will delete all warns, levels, banned words, logs, and binaries (bin/). ⚠️")
+    print("Configuration files (update_logs.json) will be preserved.")
     
     # Auto-confirmation since user asked for it, but good to have a check if run manually
     # For now we proceed as this is a tool script.
@@ -91,14 +98,29 @@ def main():
             reset_json_file(file_path)
 
     print("\n--- Resetting Logs ---")
-    if os.path.exists(LOG_FILE):
-        if safe_remove(LOG_FILE):
-            reset_log_file(LOG_FILE)
-    else:
-        reset_log_file(LOG_FILE)
+    for log_path in LOG_FILES:
+        if os.path.exists(log_path):
+            if safe_remove(log_path):
+                reset_log_file(log_path)
+        else:
+            # For logs, we only care about existing ones or creating the main bot.log
+            if log_path.endswith("bot.log"):
+                reset_log_file(log_path)
 
     print("\n--- Cleaning Cache ---")
     delete_pycache(bot_root)
+    # Also clean cache in the tools folder itself just in case
+    delete_pycache(current_dir)
+
+    print("\n--- Deleting Binaries (bin/) ---")
+    if os.path.exists(BIN_DIR):
+        try:
+            shutil.rmtree(BIN_DIR)
+            print(f"✓ Deleted bin directory: {BIN_DIR}")
+        except Exception as e:
+            print(f"⚠ Could not delete {BIN_DIR}: {e}")
+    else:
+        print("· No bin directory found.")
 
     print("\n✅ Bot reset complete.")
 

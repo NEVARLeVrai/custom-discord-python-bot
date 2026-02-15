@@ -141,7 +141,7 @@ def install_dependencies():
                 opener.addheaders = [('User-agent', 'Mozilla/5.0')]
                 urllib.request.install_opener(opener)
                 urllib.request.urlretrieve(url, download_path)
-                print("Download complete.")
+                print(t('run_dl_complete'))
                 print(t('run_extract_ffmpeg'))
                 with zipfile.ZipFile(download_path, 'r') as zip_ref:
                     for file in zip_ref.namelist():
@@ -150,6 +150,10 @@ def install_dependencies():
                             src = os.path.join(BIN_DIR, file)
                             dst = os.path.join(BIN_DIR, "ffmpeg.exe")
                             shutil.move(src, dst)
+                            # Cleanup extraction directory
+                            temp_dir = os.path.join(BIN_DIR, file.split('/')[0])
+                            if os.path.exists(temp_dir) and os.path.isdir(temp_dir):
+                                shutil.rmtree(temp_dir)
                             break
                 os.remove(download_path)
             elif system == 'linux':
@@ -182,6 +186,11 @@ def install_dependencies():
                             src = os.path.join(BIN_DIR, file)
                             dst = os.path.join(BIN_DIR, "ffmpeg")
                             shutil.move(src, dst)
+                            # Cleanup extraction directory if it exists
+                            if '/' in file:
+                                temp_dir = os.path.join(BIN_DIR, file.split('/')[0])
+                                if os.path.exists(temp_dir) and os.path.isdir(temp_dir):
+                                    shutil.rmtree(temp_dir)
                             break
                 os.remove(download_path)
                 os.chmod(os.path.join(BIN_DIR, "ffmpeg"), 0o755)

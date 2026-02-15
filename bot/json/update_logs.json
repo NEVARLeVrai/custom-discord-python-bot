@@ -1,6 +1,21 @@
 {
-  "current_version": "Bot V.1402b-26",
+  "current_version": "Bot V.1502c-26",
   "history": [
+    {
+      "version": "Bot V.1502c-26",
+      "date": "15/02/2026",
+      "logs": "Final Internationalization & System Cleanup: Completed full project localization (translation keys added for all internal logs, startup messages, and auto-commands), restored 'help_requested_by' key consistency across all modules, and significantly enhanced 'reset_bot.py'. The reset tool now performs a total purge including GPT/DALL-E logs, banned words, all server data, and recursive cache removal (__pycache__) across the entire project structure."
+    },
+    {
+      "version": "Bot V.1502b-26",
+      "date": "15/02/2026",
+      "logs": "Audio System Improvements: Added real-time volume control (PCMVolumeTransformer), visual progress bar in music embeds, improved position tracking, and enhanced /mseek command (supports minutes and seconds). Removed all remaining French comments from core audio services and cleaned up MusicControlView UI logic."
+    },
+    {
+      "version": "Bot V.1502-26",
+      "date": "15/02/2026",
+      "logs": "Major Music System Overhaul: Complete UI redesign with interactive buttons (Previous, Play/Pause, Skip, Loop, ±15s, Queue, Stop), all YouTube commands renamed with 'm' prefix for clarity (mplay, msearch, mskip, etc.), advanced playback controls (mvolume, mseek, mprevious, maddqueue, mremovequeue), track history system (50 last tracks), volume control for music and soundboard (0-200%), improved queue management (proper song queuing when music is playing), fixed search command interaction timeout with defer(), new MusicControlView with 8 interactive buttons for full music control, updated audio_service (volume, seek, track history), help system updated with all new commands and UI controls, 54 commands synchronized (previously 44)."
+    },
     {
       "version": "Bot V.1402b-26",
       "date": "14/02/2026",

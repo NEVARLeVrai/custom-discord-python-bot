@@ -126,10 +126,10 @@ class Leveling_slash(commands.Cog):
             for idx, entry in enumerate(top_levels):
                 medal = medals[idx] if idx < len(medals) else f"{idx+1}."
                 member, lvl, exp, u_id = entry
-                if member:
-                    leaderboard_text += f"{medal} {member.mention} - {t('lvl_level_header')} {lvl} ({exp} {t('lvl_exp_unit')})\n"
-                else:
-                    leaderboard_text += f"{medal} **{t('lvl_lb_unknown_user')}** (ID: {u_id}) - {t('lvl_level_header')} {lvl} ({exp} {t('lvl_exp_unit')})\n"
+                if member: user_display = f"**{member.display_name}**"
+                else: user_display = f"**{t('lvl_lb_unknown_user')}** ({t('lvl_lb_unknown_id', id=u_id)})"
+                
+                leaderboard_text += f"{medal} {user_display} - {t('lvl_level_header')} {lvl} ({exp} {t('lvl_exp_unit')})\n"
             
             embed.add_field(name=t('lvl_lb_rank_header'), value=leaderboard_text, inline=False)
         else:

@@ -129,6 +129,21 @@ class Soundboard_slash(commands.Cog):
         else:
             await interaction.response.send_message(t('sb_random_skip_error_none'), ephemeral=True)
 
+    @app_commands.command(name="svolume", description="Set the soundboard volume")
+    @app_commands.describe(volume="Volume level (0-200, default is 100)")
+    async def svolume(self, interaction: discord.Interaction, volume: int):
+        if volume < 0 or volume > 200:
+            embed = discord.Embed(title=t('sb_volume_error_title'), description=t('sb_volume_error_range'), color=discord.Color.red())
+            embed.set_footer(text=get_current_version(self.client))
+            return await interaction.response.send_message(embed=embed, ephemeral=True)
+
+        volume_float = volume / 100.0
+        self.audio_service.set_volume(interaction.guild.id, volume_float)
+
+        embed = discord.Embed(title=t('sb_volume_title'), description=t('sb_volume_desc', volume=volume), color=discord.Color.green())
+        embed.set_footer(text=get_current_version(self.client))
+        await interaction.response.send_message(embed=embed)
+
     @app_commands.command(name="vkick", description="Kick a user from voice channel")
     @app_commands.describe(member="User to kick (optional, else all)")
     @app_commands.default_permissions(administrator=True)
