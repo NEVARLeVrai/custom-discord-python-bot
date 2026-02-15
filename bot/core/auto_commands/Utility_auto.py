@@ -34,23 +34,23 @@ class Utility_auto(commands.Cog):
             # Remove everything after the last /
             modified_link = original_link.rsplit('/', 1)[0] + '/'
             modified_link = modified_link.replace('instagram.com', 'eeinstagram.com')
-            await self.send_modified_message(message, modified_link, t('platform_instagram'))
+            await self.send_modified_message(message, modified_link, t('platform_instagram', guild_id=message.guild.id))
 
     async def process_twitter_message(self, message):
         twitter_link = re.search(r'(https?://(?:www\.)?twitter\.com/\S+)', message.content)
         if twitter_link:
             original_link = twitter_link.group(0)
             modified_link = original_link.replace('twitter.com', 'fxtwitter.com')
-            await self.send_modified_message(message, modified_link, t('platform_twitter'))
+            await self.send_modified_message(message, modified_link, t('platform_twitter', guild_id=message.guild.id))
 
     async def process_x_message(self, message):
         x_link = re.search(r'(https?://(?:www\.)?x\.com/\S+)', message.content)
         if x_link:
             original_link = x_link.group(0)
             modified_link = original_link.replace('x.com', 'fxtwitter.com')
-            await self.send_modified_message(message, modified_link, t('platform_twitter'))
+            await self.send_modified_message(message, modified_link, t('platform_twitter', guild_id=message.guild.id))
 
-    async def get_reddit_final_url(self, url):
+    async def get_reddit_final_url(self, url, guild_id=None):
         """Follows Reddit redirects to get final PC link"""
         try:
             headers = {
@@ -69,7 +69,7 @@ class Utility_auto(commands.Cog):
                         final_url = str(response.url)
                         return final_url
         except Exception as e:
-            print(t('log_err_reddit_resolve', error=e))
+            print(t('log_err_reddit_resolve', error=e, guild_id=guild_id))
             return None
 
     async def process_reddit_message(self, message):
@@ -84,7 +84,7 @@ class Utility_auto(commands.Cog):
             original_link = original_link.split('?')[0]
             
             # Follow redirect to get final PC link
-            final_url = await self.get_reddit_final_url(original_link)
+            final_url = await self.get_reddit_final_url(original_link, guild_id=message.guild.id)
             if final_url:
                 original_link = final_url
                 # Remove query parameters from final link too
@@ -94,7 +94,7 @@ class Utility_auto(commands.Cog):
             modified_link = original_link
             # Replace reddit.com with vxreddit.com (keeps www. if present)
             modified_link = modified_link.replace('reddit.com', 'vxreddit.com')
-            await self.send_modified_message(message, modified_link, t('platform_reddit'))
+            await self.send_modified_message(message, modified_link, t('platform_reddit', guild_id=message.guild.id))
 
     async def send_modified_message(self, message, modified_link, platform):
         try:

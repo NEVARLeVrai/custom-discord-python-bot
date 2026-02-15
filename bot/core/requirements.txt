@@ -1,5 +1,6 @@
 discord.py
-yt-dlp
+yt-dlp[default]
+curl-cffi
 yt-dlp-ejs
 PyNaCl
 openai

@@ -23,9 +23,10 @@ A complete **Discord bot** with numerous features, developed in **Python** using
 
 ### 🌍 Internationalization (Full Support)
 
-- **`/setlang [language]`** – Change the bot's language (English `en` or French `fr`) directly in Discord.
-- **Complete Coverage** – All commands, system logs, startup messages, and error responses are fully localized.
-- **Persisted Preference** – The language setting is saved in `bot/json/config.json` and persists across restarts.
+- **`/setlang [language]`** – Change the bot's language (English `en` or French `fr`) for the current server.
+- **Complete Coverage** – All commands, system logs, and error responses are fully localized.
+- **Server-Specific Support** – Each server can have its own independent language setting.
+- **Persisted Preference** – Settings are saved in `bot/lang/config.json` and persist across restarts.
 
 ### 🧩 General Commands
 
@@ -61,8 +62,8 @@ A complete **Discord bot** with numerous features, developed in **Python** using
 
 **Per-Server System:**
 
-- **Warns and banned words are server-specific** – Each server has its own independent list of banned words and warns
-- **No cross-server data** – Warns and banned words from one server do not affect other servers
+- **Warns, banned words, and language are server-specific** – Each server has its own independent list of banned words, warns, and language preference.
+- **No cross-server data** – Settings from one server do not affect others.
 
 **Automatic Features:**
 
@@ -104,7 +105,7 @@ Original messages are deleted and replaced with the optimized link.
 
 - **`/slist`** – List available sounds
 - **`/splay [number]`** – Play a sound (auto joins VC)
-- **`/sleave`** – Leave VC
+- **`/leave`** – Leave VC
 - **`/sstop`** – Stop sound
 - **`/svolume [0-200]`** – Set soundboard volume _(NEW!)_
 - **`/srandom`** – Play random sounds every 1–5 min
@@ -131,7 +132,7 @@ Supported formats : MP3 / MP4 / M4A / OGG / OPUS / WAV / FLAC / AAC
 - **`/mstop`** – Stop playback and clear queue
 - **`/mpause`** – Pause the current track
 - **`/mresume`** – Resume playback
-- **`/mleave`** – Disconnect from voice channel
+- **`/leave`** – Disconnect from voice channel
 
 **Queue Management:**
 

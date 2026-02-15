@@ -42,12 +42,13 @@ class Owner_slash(commands.Cog):
         """Stops the bot"""
         # Check if user is owner
         if not await async_is_owner_check(self.client, interaction.user):
-            await interaction.response.send_message(t('err_not_owner_desc'), ephemeral=True)
+            await interaction.response.send_message(t('err_not_owner_desc', guild_id=interaction.guild.id if interaction.guild else None), ephemeral=True)
             return
         
+        guild_id = interaction.guild.id if interaction.guild else None
         bot_latency = round(self.client.latency * 1000)
-        embed = discord.Embed(title=t('owner_stop_title'), description=t('owner_stop_desc', latency=bot_latency), color=discord.Color.red())
-        embed.set_footer(text=get_current_version(self.client))
+        embed = discord.Embed(title=t('owner_stop_title', guild_id=guild_id), description=t('owner_stop_desc', latency=bot_latency, guild_id=guild_id), color=discord.Color.red())
+        embed.set_footer(text=get_current_version(self.client, guild_id=guild_id))
         with open(self.client.paths['hilaire2_png'], "rb") as f:
             image_data = f.read()
         embed.set_thumbnail(url="attachment://hilaire2.png")
@@ -64,18 +65,19 @@ class Owner_slash(commands.Cog):
         """Re-syncs slash commands"""
         # Check if user is owner
         if not await async_is_owner_check(self.client, interaction.user):
-            await interaction.response.send_message(t('err_not_owner_desc'), ephemeral=True)
+            await interaction.response.send_message(t('err_not_owner_desc', guild_id=interaction.guild.id if interaction.guild else None), ephemeral=True)
             return
         
         # Intermediate message
         status_msg = None
         try:
+            guild_id = interaction.guild.id if interaction.guild else None
             embed = discord.Embed(
-                title=t('owner_sync_loading_title'),
-                description=t('owner_sync_loading_desc'),
+                title=t('owner_sync_loading_title', guild_id=guild_id),
+                description=t('owner_sync_loading_desc', guild_id=guild_id),
                 color=discord.Color.orange()
             )
-            embed.set_footer(text=get_current_version(self.client))
+            embed.set_footer(text=get_current_version(self.client, guild_id=guild_id))
             await interaction.response.defer(ephemeral=False)
             status_msg = await interaction.followup.send(embed=embed, wait=True)
             
@@ -85,20 +87,20 @@ class Owner_slash(commands.Cog):
             synced_global = await self.client.tree.sync()
             
             success_embed = discord.Embed(
-                title=t('owner_sync_success_title'),
-                description=t('owner_sync_success_desc', guild=interaction.guild.name),
+                title=t('owner_sync_success_title', guild_id=guild_id),
+                description=t('owner_sync_success_desc', guild=interaction.guild.name, guild_id=guild_id),
                 color=discord.Color.green()
             )
             
             if synced_guild or synced_global:
                 count = len(synced_guild) if synced_guild else len(synced_global) if synced_global else 0
                 success_embed.add_field(
-                    name=t('owner_sync_count_field'),
-                    value=t('owner_sync_count_value', count=count),
+                    name=t('owner_sync_count_field', guild_id=guild_id),
+                    value=t('owner_sync_count_value', count=count, guild_id=guild_id),
                     inline=False
                 )
             
-            success_embed.set_footer(text=get_current_version(self.client))
+            success_embed.set_footer(text=get_current_version(self.client, guild_id=guild_id))
             if status_msg:
                 await status_msg.edit(embed=success_embed)
             else:
@@ -106,11 +108,11 @@ class Owner_slash(commands.Cog):
                 
         except Exception as e:
             error_embed = discord.Embed(
-                title=t('owner_sync_error_title'),
-                description=f"{t('error')}: {str(e)}",
+                title=t('owner_sync_error_title', guild_id=guild_id),
+                description=f"{t('error', guild_id=guild_id)}: {str(e)}",
                 color=discord.Color.red()
             )
-            error_embed.set_footer(text=get_current_version(self.client))
+            error_embed.set_footer(text=get_current_version(self.client, guild_id=guild_id))
             if status_msg:
                 await status_msg.edit(embed=error_embed)
             else:
@@ -121,18 +123,19 @@ class Owner_slash(commands.Cog):
         """Displays diagnostic info about slash commands"""
         # Check if user is owner
         if not await async_is_owner_check(self.client, interaction.user):
-            await interaction.response.send_message(t('err_not_owner_desc'), ephemeral=True)
+            await interaction.response.send_message(t('err_not_owner_desc', guild_id=interaction.guild.id if interaction.guild else None), ephemeral=True)
             return
         
+        guild_id = interaction.guild.id if interaction.guild else None
         embed = discord.Embed(
-            title=t('owner_slashinfo_title'),
+            title=t('owner_slashinfo_title', guild_id=guild_id),
             color=discord.Color.blue()
         )
         
         # Bot info
         embed.add_field(
-            name=t('owner_slashinfo_bot_info_field'),
-            value=t('owner_slashinfo_bot_info_value', name=self.client.user.name, id=self.client.user.id),
+            name=t('owner_slashinfo_bot_info_field', guild_id=guild_id),
+            value=t('owner_slashinfo_bot_info_value', name=self.client.user.name, id=self.client.user.id, guild_id=guild_id),
             inline=False
         )
         
@@ -145,22 +148,22 @@ class Owner_slash(commands.Cog):
         except:
             pass
         
-        cmd_list_str = ', '.join([f'`/{cmd}`' for cmd in local_commands]) if local_commands else t('owner_slashinfo_no_commands')
+        cmd_list_str = ', '.join([f'`/{cmd}`' for cmd in local_commands]) if local_commands else t('owner_slashinfo_no_commands', guild_id=guild_id)
         embed.add_field(
-            name=t('owner_slashinfo_registered_field'),
-            value=t('owner_slashinfo_registered_value', count=len(local_commands), commands=cmd_list_str), 
+            name=t('owner_slashinfo_registered_field', guild_id=guild_id),
+            value=t('owner_slashinfo_registered_value', count=len(local_commands), commands=cmd_list_str, guild_id=guild_id), 
             inline=False
         )
         
         # Invite link
         invite_url = f"https://discord.com/api/oauth2/authorize?client_id={self.client.user.id}&permissions=8&scope=bot%20applications.commands"
         embed.add_field(
-            name=t('owner_slashinfo_invite_field'),
-            value=t('owner_slashinfo_invite_value', url=invite_url),
+            name=t('owner_slashinfo_invite_field', guild_id=guild_id),
+            value=t('owner_slashinfo_invite_value', url=invite_url, guild_id=guild_id),
             inline=False
         )
         
-        embed.set_footer(text=get_current_version(self.client))
+        embed.set_footer(text=get_current_version(self.client, guild_id=guild_id))
         await interaction.response.send_message(embed=embed, ephemeral=False)
 
     @app_commands.command(name="clearslash", description="Clears all slash commands from Discord (owner only)")
@@ -168,18 +171,19 @@ class Owner_slash(commands.Cog):
         """Clears all slash commands from Discord"""
         # Check if user is owner
         if not await async_is_owner_check(self.client, interaction.user):
-            await interaction.response.send_message(t('err_not_owner_desc'), ephemeral=True)
+            await interaction.response.send_message(t('err_not_owner_desc', guild_id=interaction.guild.id if interaction.guild else None), ephemeral=True)
             return
         
         status_msg = None
         try:
+            guild_id = interaction.guild.id if interaction.guild else None
             # Intermediate message
             embed = discord.Embed(
-                title=t('owner_clearslash_title'),
-                description=t('owner_clearslash_loading'),
+                title=t('owner_clearslash_title', guild_id=guild_id),
+                description=t('owner_clearslash_loading', guild_id=guild_id),
                 color=discord.Color.orange()
             )
-            embed.set_footer(text=get_current_version(self.client))
+            embed.set_footer(text=get_current_version(self.client, guild_id=guild_id))
             await interaction.response.defer(ephemeral=False)
             status_msg = await interaction.followup.send(embed=embed, wait=True)
             
@@ -229,32 +233,32 @@ class Owner_slash(commands.Cog):
             
             # Create result embed
             success_embed = discord.Embed(
-                title=t('owner_clearslash_success_title'),
-                description=t('owner_clearslash_success_desc'),
+                title=t('owner_clearslash_success_title', guild_id=guild_id),
+                description=t('owner_clearslash_success_desc', guild_id=guild_id),
                 color=discord.Color.green()
             )
             
             if count_global_before > 0:
                 success_embed.add_field(
-                    name=t('owner_clearslash_global_field'),
-                    value=t('owner_clearslash_global_value', before=count_global_before, after=count_global_after, deleted=total_deleted_global),
+                    name=t('owner_clearslash_global_field', guild_id=guild_id),
+                    value=t('owner_clearslash_global_value', before=count_global_before, after=count_global_after, deleted=total_deleted_global, guild_id=guild_id),
                     inline=False
                 )
             
             if sum(guild_counts_before.values()) > 0:
                 success_embed.add_field(
-                    name=t('owner_clearslash_guild_field'),
-                    value=t('owner_clearslash_guild_value', count=synced_guilds),
+                    name=t('owner_clearslash_guild_field', guild_id=guild_id),
+                    value=t('owner_clearslash_guild_value', count=synced_guilds, guild_id=guild_id),
                     inline=False
                 )
             
             success_embed.add_field(
-                name=t('owner_clearslash_warning_title'),
-                value=t('owner_clearslash_warning_value'),
+                name=t('owner_clearslash_warning_title', guild_id=guild_id),
+                value=t('owner_clearslash_warning_value', guild_id=guild_id),
                 inline=False
             )
             
-            success_embed.set_footer(text=get_current_version(self.client))
+            success_embed.set_footer(text=get_current_version(self.client, guild_id=guild_id))
             if status_msg:
                 await status_msg.edit(embed=success_embed)
             else:
@@ -262,48 +266,53 @@ class Owner_slash(commands.Cog):
             
         except Exception as e:
             error_embed = discord.Embed(
-                title=t('owner_clearslash_error_title'),
-                description=f"{t('error')}: {str(e)}",
+                title=t('owner_clearslash_error_title', guild_id=guild_id),
+                description=f"{t('error', guild_id=guild_id)}: {str(e)}",
                 color=discord.Color.red()
             )
-            error_embed.set_footer(text=get_current_version(self.client))
+            error_embed.set_footer(text=get_current_version(self.client, guild_id=guild_id))
             if status_msg:
                 await status_msg.edit(embed=error_embed)
             else:
                 await interaction.followup.send(embed=error_embed, ephemeral=False)
 
 
-    @app_commands.command(name="setlang", description="Change the bot language (owner only)")
+    @app_commands.command(name="setlang", description="Change the bot language (Server Admin only)")
     @app_commands.describe(lang="The language code (e.g. fr, en)")
+    @app_commands.default_permissions(manage_guild=True)
     async def set_lang(self, interaction: discord.Interaction, lang: str):
         """Changes bot language"""
-        # Check if user is owner
-        if not await async_is_owner_check(self.client, interaction.user):
-            await interaction.response.send_message(t('err_not_owner_desc'), ephemeral=True)
-            return
+        # If in a guild, check Manage Guild permission
+        if interaction.guild:
+            if not interaction.user.guild_permissions.manage_guild and not await async_is_owner_check(self.client, interaction.user):
+                await interaction.response.send_message(t('err_no_permission', guild_id=interaction.guild.id), ephemeral=True)
+                return
+            guild_id = interaction.guild.id
+        else:
+            # If in DMs, only owner can change global default
+            if not await async_is_owner_check(self.client, interaction.user):
+                await interaction.response.send_message(t('err_not_owner_desc'), ephemeral=True)
+                return
+            guild_id = None
             
         from lang.lang_utils import set_language, get_available_languages
         
-        if set_language(lang):
-            # Reload commands to update descriptions if needed (though descriptions are static here)
-            # In reality, we should restart or reload cogs for everything to take effect everywhere,
-            # but set_language changes the global variable so subsequent t() calls will use the new language.
-            
+        if set_language(lang, guild_id):
             embed = discord.Embed(
-                title=t('mods_success_title'),
-                description=t('lang_set_success', lang=lang),
+                title=t('mods_success_title', guild_id=guild_id),
+                description=t('lang_set_success', lang=lang, guild_id=guild_id),
                 color=discord.Color.green()
             )
-            embed.set_footer(text=get_current_version(self.client))
+            embed.set_footer(text=get_current_version(self.client, guild_id=guild_id))
             await interaction.response.send_message(embed=embed)
         else:
             available = ", ".join(get_available_languages())
             embed = discord.Embed(
-                title=t('error'),
-                description=t('lang_invalid', langs=available),
+                title=t('error', guild_id=guild_id),
+                description=t('lang_invalid', langs=available, guild_id=guild_id),
                 color=discord.Color.red()
             )
-            embed.set_footer(text=get_current_version(self.client))
+            embed.set_footer(text=get_current_version(self.client, guild_id=guild_id))
             await interaction.response.send_message(embed=embed, ephemeral=True)
 
 async def setup(client):

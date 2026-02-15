@@ -24,120 +24,130 @@ class ErrorHandler(commands.Cog):
         
         # Unknown command
         if isinstance(error, commands.CommandNotFound):
+            guild_id = ctx.guild.id if ctx.guild else None
             embed = discord.Embed(
-                title=t('err_unknown_command_title'),
-                description=t('err_unknown_command_desc'),
+                title=t('err_unknown_command_title', guild_id=guild_id),
+                description=t('err_unknown_command_desc', guild_id=guild_id),
                 color=discord.Color.red()
             )
             if ctx.guild:
                 embed.set_image(url=ctx.guild.icon)
-            embed.set_footer(text=get_current_version(self.client))
+            embed.set_footer(text=get_current_version(self.client, guild_id=guild_id))
             await ctx.send(embed=embed, delete_after=10)
             return
         
         # Missing permissions for user
         if isinstance(error, commands.MissingPermissions):
+            guild_id = ctx.guild.id if ctx.guild else None
             missing_perms = [perm.replace('_', ' ').title() for perm in error.missing_permissions]
             perms_text = ", ".join(missing_perms)
             embed = discord.Embed(
-                title=t('err_missing_perms_user_title'),
-                description=t('err_missing_perms_user_desc', perms=perms_text),
+                title=t('err_missing_perms_user_title', guild_id=guild_id),
+                description=t('err_missing_perms_user_desc', perms=perms_text, guild_id=guild_id),
                 color=discord.Color.red()
             )
-            embed.set_footer(text=get_current_version(self.client))
+            embed.set_footer(text=get_current_version(self.client, guild_id=guild_id))
             await ctx.send(embed=embed, delete_after=10)
             return
         
         # Missing permissions for bot
         if isinstance(error, commands.BotMissingPermissions):
+            guild_id = ctx.guild.id if ctx.guild else None
             missing_perms = [perm.replace('_', ' ').title() for perm in error.missing_permissions]
             perms_text = ", ".join(missing_perms)
             embed = discord.Embed(
-                title=t('err_missing_perms_bot_title'),
-                description=t('err_missing_perms_bot_desc', perms=perms_text),
+                title=t('err_missing_perms_bot_title', guild_id=guild_id),
+                description=t('err_missing_perms_bot_desc', perms=perms_text, guild_id=guild_id),
                 color=discord.Color.red()
             )
-            embed.set_footer(text=get_current_version(self.client))
+            embed.set_footer(text=get_current_version(self.client, guild_id=guild_id))
             await ctx.send(embed=embed, delete_after=10)
             return
         
         # Missing required argument
         if isinstance(error, commands.MissingRequiredArgument):
+            guild_id = ctx.guild.id if ctx.guild else None
             embed = discord.Embed(
-                title=t('err_missing_arg_title'),
-                description=t('err_missing_arg_desc', command=ctx.command.name, param=error.param.name),
+                title=t('err_missing_arg_title', guild_id=guild_id),
+                description=t('err_missing_arg_desc', command=ctx.command.name, param=error.param.name, guild_id=guild_id),
                 color=discord.Color.red()
             )
-            embed.set_footer(text=get_current_version(self.client))
+            embed.set_footer(text=get_current_version(self.client, guild_id=guild_id))
             await ctx.send(embed=embed, delete_after=10)
             return
         
         # Invalid argument
         if isinstance(error, commands.BadArgument):
+            guild_id = ctx.guild.id if ctx.guild else None
             embed = discord.Embed(
-                title=t('err_bad_arg_title'),
-                description=t('err_bad_arg_desc', command=ctx.command.name),
+                title=t('err_bad_arg_title', guild_id=guild_id),
+                description=t('err_bad_arg_desc', command=ctx.command.name, guild_id=guild_id),
                 color=discord.Color.red()
             )
-            embed.set_footer(text=get_current_version(self.client))
+            embed.set_footer(text=get_current_version(self.client, guild_id=guild_id))
             await ctx.send(embed=embed, delete_after=10)
             return
         
         # Command on cooldown
         if isinstance(error, commands.CommandOnCooldown):
+            guild_id = ctx.guild.id if ctx.guild else None
             embed = discord.Embed(
-                title=t('err_cooldown_title'),
-                description=t('err_cooldown_desc', time=round(error.retry_after, 1)),
+                title=t('err_cooldown_title', guild_id=guild_id),
+                description=t('err_cooldown_desc', time=round(error.retry_after, 1), guild_id=guild_id),
                 color=discord.Color.orange()
             )
-            embed.set_footer(text=get_current_version(self.client))
+            embed.set_footer(text=get_current_version(self.client, guild_id=guild_id))
             await ctx.send(embed=embed, delete_after=error.retry_after)
             return
         
         # Owner only command
         if isinstance(error, commands.NotOwner):
+            guild_id = ctx.guild.id if ctx.guild else None
             embed = discord.Embed(
-                title=t('err_not_owner_title'),
-                description=t('err_not_owner_desc'),
+                title=t('err_not_owner_title', guild_id=guild_id),
+                description=t('err_not_owner_desc', guild_id=guild_id),
                 color=discord.Color.red()
             )
-            embed.set_footer(text=get_current_version(self.client))
+            embed.set_footer(text=get_current_version(self.client, guild_id=guild_id))
             await ctx.send(embed=embed, delete_after=10)
             return
         
         # Guild only command
         if isinstance(error, commands.NoPrivateMessage):
+            guild_id = ctx.guild.id if ctx.guild else None
             embed = discord.Embed(
-                title=t('err_no_private_title'),
-                description=t('err_no_private_desc'),
+                title=t('err_no_private_title', guild_id=guild_id),
+                description=t('err_no_private_desc', guild_id=guild_id),
                 color=discord.Color.red()
             )
-            embed.set_footer(text=get_current_version(self.client))
+            embed.set_footer(text=get_current_version(self.client, guild_id=guild_id))
             await ctx.send(embed=embed, delete_after=10)
             return
         
         # Check failure (for custom checks)
         if isinstance(error, commands.CheckFailure):
+            guild_id = ctx.guild.id if ctx.guild else None
             embed = discord.Embed(
-                title=t('err_check_failure_title'),
-                description=t('err_check_failure_desc'),
+                title=t('err_check_failure_title', guild_id=guild_id),
+                description=t('err_check_failure_desc', guild_id=guild_id),
                 color=discord.Color.red()
             )
-            embed.set_footer(text=get_current_version(self.client))
+            embed.set_footer(text=get_current_version(self.client, guild_id=guild_id))
             await ctx.send(embed=embed, delete_after=10)
             return
         
         # Invocation error (general command errors)
         if isinstance(error, commands.CommandInvokeError):
+            guild_id = ctx.guild.id if ctx.guild else None
             original_error = error.original
             # Handle specific Discord errors
             if isinstance(original_error, discord.Forbidden):
                 embed = discord.Embed(
-                    title=t('err_forbidden_title'),
-                    description=t('err_forbidden_desc'),
+                    title=t('err_forbidden_title', guild_id=guild_id),
+                    description=t('err_forbidden_desc', guild_id=guild_id),
                     color=discord.Color.red()
                 )
-                embed.set_footer(text=get_current_version(self.client))
+                embed.set_footer(text=get_current_version(self.client, guild_id=guild_id))
                 try:
                     await ctx.send(embed=embed, delete_after=10)
                 except:
@@ -145,11 +155,11 @@ class ErrorHandler(commands.Cog):
                 return
             elif isinstance(original_error, discord.NotFound):
                 embed = discord.Embed(
-                    title=t('err_not_found_title'),
-                    description=t('err_not_found_desc'),
+                    title=t('err_not_found_title', guild_id=guild_id),
+                    description=t('err_not_found_desc', guild_id=guild_id),
                     color=discord.Color.red()
                 )
-                embed.set_footer(text=get_current_version(self.client))
+                embed.set_footer(text=get_current_version(self.client, guild_id=guild_id))
                 try:
                     await ctx.send(embed=embed, delete_after=10)
                 except:
@@ -158,24 +168,25 @@ class ErrorHandler(commands.Cog):
             else:
                 # Other errors - show generic message
                 embed = discord.Embed(
-                    title=t('err_invoke_title'),
-                    description=t('err_invoke_desc'),
+                    title=t('err_invoke_title', guild_id=guild_id),
+                    description=t('err_invoke_desc', guild_id=guild_id),
                     color=discord.Color.red()
                 )
-                embed.set_footer(text=get_current_version(self.client))
+                embed.set_footer(text=get_current_version(self.client, guild_id=guild_id))
                 try:
                     await ctx.send(embed=embed, delete_after=10)
                 except:
                     pass
                 # Log error for debug
-                command_name = ctx.command.name if ctx.command else t('err_unknown')
-                self.logger.error(t('log_err_command', command=command_name))
+                command_name = ctx.command.name if ctx.command else t('err_unknown', guild_id=guild_id)
+                self.logger.error(t('log_err_command', command=command_name, guild_id=guild_id))
                 self.logger.error(''.join(traceback.format_exception(type(original_error), original_error, original_error.__traceback__)))
                 return
         
         # For all other unhandled errors
-        command_name = ctx.command.name if ctx.command else t('err_unknown')
-        self.logger.error(t('log_err_unhandled', command=command_name))
+        guild_id = ctx.guild.id if ctx.guild else None
+        command_name = ctx.command.name if ctx.command else t('err_unknown', guild_id=guild_id)
+        self.logger.error(t('log_err_unhandled', command=command_name, guild_id=guild_id))
         self.logger.error(''.join(traceback.format_exception(type(error), error, error.__traceback__)))
     
     # Method to handle slash command errors (called from main.py)
@@ -211,18 +222,19 @@ class ErrorHandler(commands.Cog):
                     except:
                         pass
         
-        command_name = interaction.command.name if interaction.command else t('err_unknown')
+        guild_id = interaction.guild.id if interaction.guild else None
+        command_name = interaction.command.name if interaction.command else t('err_unknown', guild_id=guild_id)
         
         # Missing permissions for user
         if isinstance(error, app_commands.MissingPermissions):
             missing_perms = [perm.replace('_', ' ').title() for perm in error.missing_permissions]
             perms_text = ", ".join(missing_perms)
             embed = discord.Embed(
-                title=t('err_missing_perms_user_title'),
-                description=t('err_missing_perms_user_desc', perms=perms_text),
+                title=t('err_missing_perms_user_title', guild_id=guild_id),
+                description=t('err_missing_perms_user_desc', perms=perms_text, guild_id=guild_id),
                 color=discord.Color.red()
             )
-            embed.set_footer(text=get_current_version(self.client))
+            embed.set_footer(text=get_current_version(self.client, guild_id=guild_id))
             await send_error_embed(embed)
             return
         
@@ -231,33 +243,33 @@ class ErrorHandler(commands.Cog):
             missing_perms = [perm.replace('_', ' ').title() for perm in error.missing_permissions]
             perms_text = ", ".join(missing_perms)
             embed = discord.Embed(
-                title=t('err_missing_perms_bot_title'),
-                description=t('err_missing_perms_bot_desc', perms=perms_text),
+                title=t('err_missing_perms_bot_title', guild_id=guild_id),
+                description=t('err_missing_perms_bot_desc', perms=perms_text, guild_id=guild_id),
                 color=discord.Color.red()
             )
-            embed.set_footer(text=get_current_version(self.client))
+            embed.set_footer(text=get_current_version(self.client, guild_id=guild_id))
             await send_error_embed(embed)
             return
         
         # Command on cooldown
         if isinstance(error, app_commands.CommandOnCooldown):
             embed = discord.Embed(
-                title=t('err_cooldown_title'),
-                description=t('err_cooldown_desc', time=round(error.retry_after, 1)),
+                title=t('err_cooldown_title', guild_id=guild_id),
+                description=t('err_cooldown_desc', time=round(error.retry_after, 1), guild_id=guild_id),
                 color=discord.Color.orange()
             )
-            embed.set_footer(text=get_current_version(self.client))
+            embed.set_footer(text=get_current_version(self.client, guild_id=guild_id))
             await send_error_embed(embed)
             return
         
         # Check failure
         if isinstance(error, app_commands.CheckFailure):
             embed = discord.Embed(
-                title=t('err_check_failure_title'),
-                description=t('err_check_failure_desc'),
+                title=t('err_check_failure_title', guild_id=guild_id),
+                description=t('err_check_failure_desc', guild_id=guild_id),
                 color=discord.Color.red()
             )
-            embed.set_footer(text=get_current_version(self.client))
+            embed.set_footer(text=get_current_version(self.client, guild_id=guild_id))
             await send_error_embed(embed)
             return
         
@@ -268,11 +280,11 @@ class ErrorHandler(commands.Cog):
             # Handle specific Discord errors
             if isinstance(original_error, discord.Forbidden):
                 embed = discord.Embed(
-                    title=t('err_forbidden_title'),
-                    description=t('err_forbidden_desc'),
+                    title=t('err_forbidden_title', guild_id=guild_id),
+                    description=t('err_forbidden_desc', guild_id=guild_id),
                     color=discord.Color.red()
                 )
-                embed.set_footer(text=get_current_version(self.client))
+                embed.set_footer(text=get_current_version(self.client, guild_id=guild_id))
                 await send_error_embed(embed)
                 return
             elif isinstance(original_error, discord.NotFound):
@@ -280,26 +292,26 @@ class ErrorHandler(commands.Cog):
                 error_code = getattr(original_error, 'code', None)
                 if error_code == 10008:
                     # Expired webhook - do not show error as command likely succeeded
-                    print(t('log_err_webhook_expired', command=command_name))
+                    print(t('log_err_webhook_expired', command=command_name, guild_id=guild_id))
                     return
                 else:
                     embed = discord.Embed(
-                        title=t('err_not_found_title'),
-                        description=t('err_not_found_desc'),
+                        title=t('err_not_found_title', guild_id=guild_id),
+                        description=t('err_not_found_desc', guild_id=guild_id),
                         color=discord.Color.red()
                     )
-                    embed.set_footer(text=get_current_version(self.client))
+                    embed.set_footer(text=get_current_version(self.client, guild_id=guild_id))
                     await send_error_embed(embed, use_channel_fallback=True)
                     return
             elif isinstance(original_error, discord.HTTPException):
                 embed = discord.Embed(
-                    title=t('err_http_title'),
-                    description=t('err_http_desc', error=str(original_error)),
+                    title=t('err_http_title', guild_id=guild_id),
+                    description=t('err_http_desc', error=str(original_error), guild_id=guild_id),
                     color=discord.Color.red()
                 )
-                embed.set_footer(text=get_current_version(self.client))
+                embed.set_footer(text=get_current_version(self.client, guild_id=guild_id))
                 await send_error_embed(embed)
-                print(t('log_err_slash_http', command=command_name))
+                print(t('log_err_slash_http', command=command_name, guild_id=guild_id))
                 traceback.print_exception(type(original_error), original_error, original_error.__traceback__)
                 return
             elif isinstance(original_error, (ValueError, TypeError, AttributeError, KeyError, FileNotFoundError)):
@@ -313,40 +325,39 @@ class ErrorHandler(commands.Cog):
                 }
                 embed = discord.Embed(
                     title=error_type,
-                    description=t(error_keys.get(error_type, 'err_invoke_desc')),
+                    description=t(error_keys.get(error_type, 'err_invoke_desc'), guild_id=guild_id),
                     color=discord.Color.red()
                 )
-                embed.set_footer(text=get_current_version(self.client))
+                embed.set_footer(text=get_current_version(self.client, guild_id=guild_id))
                 await send_error_embed(embed)
                 if error_type in ['ValueError', 'TypeError', 'AttributeError', 'KeyError', 'FileNotFoundError']:
-                    print(t('log_err_slash_type', type=error_type, command=command_name))
+                    print(t('log_err_slash_type', type=error_type, command=command_name, guild_id=guild_id))
                     traceback.print_exception(type(original_error), original_error, original_error.__traceback__)
                 return
             else:
                 # Other errors
                 embed = discord.Embed(
-                    title=t('err_invoke_title'),
-                    description=t('err_invoke_desc'),
+                    title=t('err_invoke_title', guild_id=guild_id),
+                    description=t('err_invoke_desc', guild_id=guild_id),
                     color=discord.Color.red()
                 )
-                embed.set_footer(text=get_current_version(self.client))
+                embed.set_footer(text=get_current_version(self.client, guild_id=guild_id))
                 await send_error_embed(embed)
                 # Log error for debug
-                self.logger.error(t('log_err_slash_general', command=command_name))
+                self.logger.error(t('log_err_slash_general', command=command_name, guild_id=guild_id))
                 self.logger.error(''.join(traceback.format_exception(type(original_error), original_error, original_error.__traceback__)))
                 return
         
         # For all other unhandled errors
         embed = discord.Embed(
-            title=t('error'),
-            description=t('mods_unexpected_error', error=str(error)),
+            title=t('error', guild_id=guild_id),
+            description=t('mods_unexpected_error', error=str(error), guild_id=guild_id),
             color=discord.Color.red()
         )
-        embed.set_footer(text=get_current_version(self.client))
+        embed.set_footer(text=get_current_version(self.client, guild_id=guild_id))
         await send_error_embed(embed)
-        self.logger.error(t('log_err_slash_unhandled', command=command_name))
+        self.logger.error(t('log_err_slash_unhandled', command=command_name, guild_id=guild_id))
         self.logger.error(''.join(traceback.format_exception(type(error), error, error.__traceback__)))
 
 async def setup(client):
     await client.add_cog(ErrorHandler(client))
-

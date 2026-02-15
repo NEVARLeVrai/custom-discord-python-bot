@@ -5,7 +5,8 @@ import logging
 logger = logging.getLogger('discord_bot')
 
 LANG_DIR = os.path.join(os.path.dirname(__file__), '.')
-DEFAULT_LANG = 'fr'
+DEFAULT_LANG = 'en'
+GUILD_LANGS = {} # guild_id (str) -> lang_code
 
 _loaded_langs = {}
 
@@ -13,31 +14,36 @@ def load_languages():
     """Loads all available languages into cache."""
     global _loaded_langs
     if not os.path.exists(LANG_DIR):
-        logger.warning(t('lang_dir_not_found', dir=LANG_DIR))
         return
 
     for filename in os.listdir(LANG_DIR):
-        # Ignore config.json and any non-language JSON files
         if filename.endswith(".json") and filename not in ("config.json",):
             lang_code = filename[:-5]
             path = os.path.join(LANG_DIR, filename)
             try:
                 with open(path, encoding='utf-8') as f:
                     _loaded_langs[lang_code] = json.load(f)
-                    logger.info(t('lang_loaded', lang=lang_code))
             except Exception as e:
-                logger.error(t('lang_load_error', lang=lang_code, error=e))
+                logger.error(f"Error loading language {lang_code}: {e}")
 
-def get_text(key, _locale=None, **kwargs):
+def get_text(key, _locale=None, guild_id=None, **kwargs):
     """
     Retrieves translated text for the given key and selected language.
-    kwargs allows injecting variables into the text (e.g., {title})
+    Priority: explicit _locale > guild_id config > Global DEFAULT_LANG
     """
     if not _loaded_langs:
         load_languages()
 
-    # Determine language: explicit _locale > Global DEFAULT_LANG
-    target_lang = _locale if _locale else DEFAULT_LANG
+    # 1. Check explicit locale
+    target_lang = _locale
+    
+    # 2. Check guild config if provided
+    if not target_lang and guild_id:
+        target_lang = GUILD_LANGS.get(str(guild_id))
+    
+    # 3. Fallback to global default
+    if not target_lang:
+        target_lang = DEFAULT_LANG
 
     # Try requested language, then default language, otherwise return the key
     translations = _loaded_langs.get(target_lang) or _loaded_langs.get(DEFAULT_LANG) or {}
@@ -47,41 +53,47 @@ def get_text(key, _locale=None, **kwargs):
         try:
             return text.format(**kwargs)
         except Exception as e:
-            # Avoid infinite recursion if t() is used in logging within this module
             print(f"Format error for key '{key}': {e}")
             return text
     return text
 
-def t(key, _locale=None, **kwargs):
+def t(key, _locale=None, guild_id=None, **kwargs):
     """Shortcut for get_text."""
-    return get_text(key, _locale, **kwargs)
+    return get_text(key, _locale, guild_id=guild_id, **kwargs)
 
 CONFIG_FILE = os.path.join(LANG_DIR, 'config.json')
 
 def load_config():
     """Loads language configuration."""
-    global DEFAULT_LANG
+    global DEFAULT_LANG, GUILD_LANGS
     if os.path.exists(CONFIG_FILE):
         try:
             with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
                 config = json.load(f)
-                DEFAULT_LANG = config.get('language', 'fr')
+                DEFAULT_LANG = config.get('language', DEFAULT_LANG)
+                GUILD_LANGS = config.get('guild_languages', {})
         except Exception as e:
-            logger.error(t('lang_load_error', lang='config', error=e))
+            logger.error(f"Error loading config: {e}")
 
 def save_config():
     """Saves language configuration."""
     try:
         with open(CONFIG_FILE, 'w', encoding='utf-8') as f:
-            json.dump({'language': DEFAULT_LANG}, f, indent=4)
+            json.dump({
+                'language': DEFAULT_LANG,
+                'guild_languages': GUILD_LANGS
+            }, f, indent=4)
     except Exception as e:
-        logger.error(t('lang_save_error', error=e))
+        logger.error(f"Error saving config: {e}")
 
-def set_language(lang_code):
-    """Changes default language and saves it."""
-    global DEFAULT_LANG
+def set_language(lang_code, guild_id=None):
+    """Changes language and saves it. If guild_id is provided, sets it only for that guild."""
+    global DEFAULT_LANG, GUILD_LANGS
     if lang_code in _loaded_langs:
-        DEFAULT_LANG = lang_code
+        if guild_id:
+            GUILD_LANGS[str(guild_id)] = lang_code
+        else:
+            DEFAULT_LANG = lang_code
         save_config()
         return True
     return False

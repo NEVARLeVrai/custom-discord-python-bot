@@ -40,15 +40,14 @@ class Mods_auto(commands.Cog):
                         
                         if member.timed_out_until is None or member.timed_out_until < datetime.now(timezone.utc):
                             if member_data.get("role_removed", False):
-                                if role not in member.roles:
                                     try:
-                                        await member.add_roles(role, reason=t('mods_auto_role_restored_reason'))
+                                        await member.add_roles(role, reason=t('mods_auto_role_restored_reason', guild_id=guild.id))
                                         member_data["role_removed"] = False
                                         self.moderation_service.save_warns()
                                     except Exception as e:
-                                        print(t('log_err_role_restore', error=e))
+                                        print(t('log_err_role_restore', error=e, guild_id=guild.id))
             except Exception as e:
-                print(t('log_err_timeout_check', error=e))
+                print(t('log_err_timeout_check', error=e)) # Global log, guild_id not strictly needed or known here
     
     @check_timeout_end.before_loop
     async def before_check_timeout_end(self):
@@ -59,7 +58,7 @@ class Mods_auto(commands.Cog):
         try:
             role = guild.get_role(self.protected_role_id)
             if role and role in member.roles:
-                await member.remove_roles(role, reason=t('mods_auto_role_temporary_removal_reason'))
+                await member.remove_roles(role, reason=t('mods_auto_role_temporary_removal_reason', guild_id=guild.id))
                 return True
         except Exception:
             pass
@@ -70,24 +69,24 @@ class Mods_auto(commands.Cog):
         if member.bot:
             return
         
-        reason = t('mods_reason_banned_word', word=banned_word)
+        reason = t('mods_reason_banned_word', word=banned_word, guild_id=guild.id)
         
         # Use service
         total_warn_count = self.moderation_service.add_warn(
             guild_id=guild.id,
             member_id=member.id,
             reason=reason,
-            moderator_name=t('mods_moderator_auto'),
+            moderator_name=t('mods_moderator_auto', guild_id=guild.id),
             count=1
         )
         
         # DM
         try:
-            warn_dm = discord.Embed(title=t('mods_dm_warn_title'), description=t('mods_dm_warn_desc', server=guild.name), color=discord.Color.orange())
-            warn_dm.add_field(name=t('mods_moderator_field'), value=t('mods_moderator_auto'), inline=False)
-            warn_dm.add_field(name=t('mods_reason_field'), value=reason, inline=False)
-            warn_dm.add_field(name=t('mods_warn_total_field'), value=f"{total_warn_count}", inline=False)
-            warn_dm.set_footer(text=get_current_version(self.client))
+            warn_dm = discord.Embed(title=t('mods_dm_warn_title', guild_id=guild.id), description=t('mods_dm_warn_desc', server=guild.name, guild_id=guild.id), color=discord.Color.orange())
+            warn_dm.add_field(name=t('mods_moderator_field', guild_id=guild.id), value=t('mods_moderator_auto', guild_id=guild.id), inline=False)
+            warn_dm.add_field(name=t('mods_reason_field', guild_id=guild.id), value=reason, inline=False)
+            warn_dm.add_field(name=t('mods_warn_total_field', guild_id=guild.id), value=f"{total_warn_count}", inline=False)
+            warn_dm.set_footer(text=get_current_version(self.client, guild_id=guild.id))
             await member.send(embed=warn_dm)
         except:
             pass
@@ -96,28 +95,34 @@ class Mods_auto(commands.Cog):
         if total_warn_count >= 20: 
             await self.remove_protected_role(member, guild)
             try:
-                await guild.ban(member, reason=t('mods_auto_ban_reason'))
-                await channel.send(embed=discord.Embed(title=t('mods_auto_action_title'), description=t('mods_auto_ban_desc', member=member.mention), color=discord.Color.red()))
+                await guild.ban(member, reason=t('mods_auto_ban_reason', guild_id=guild.id))
+                action_embed = discord.Embed(title=t('mods_auto_action_title', guild_id=guild.id), description=t('mods_auto_ban_desc', member=member.mention, guild_id=guild.id), color=discord.Color.red())
+                action_embed.set_footer(text=get_current_version(self.client, guild_id=guild.id))
+                await channel.send(embed=action_embed)
             except: pass
         elif total_warn_count >= 15:
             await self.remove_protected_role(member, guild)
             try:
-                await guild.kick(member, reason=t('mods_auto_kick_reason'))
-                await channel.send(embed=discord.Embed(title=t('mods_auto_action_title'), description=t('mods_auto_kick_desc', member=member.mention), color=discord.Color.red()))
+                await guild.kick(member, reason=t('mods_auto_kick_reason', guild_id=guild.id))
+                action_embed = discord.Embed(title=t('mods_auto_action_title', guild_id=guild.id), description=t('mods_auto_kick_desc', member=member.mention, guild_id=guild.id), color=discord.Color.red())
+                action_embed.set_footer(text=get_current_version(self.client, guild_id=guild.id))
+                await channel.send(embed=action_embed)
             except: pass
         elif total_warn_count >= 10 or total_warn_count >= 5:
             duration = 10
             role_was_removed = await self.remove_protected_role(member, guild)
             timeout_until = datetime.now(timezone.utc) + timedelta(minutes=duration)
             try:
-                await member.edit(timed_out_until=timeout_until, reason=t('mods_auto_timeout_reason', count=total_warn_count))
+                await member.edit(timed_out_until=timeout_until, reason=t('mods_auto_timeout_reason', count=total_warn_count, guild_id=guild.id))
                 if role_was_removed:
                     guild_id, member_id = str(guild.id), str(member.id)
                     self.moderation_service.warns[guild_id][member_id]["role_removed"] = True
                     self.moderation_service.save_warns()
                 
-                action_desc = t('mods_auto_timeout_desc', member=member.mention, duration=duration, count=total_warn_count)
-                await channel.send(embed=discord.Embed(title=t('mods_auto_action_title'), description=action_desc, color=discord.Color.yellow()))
+                action_desc = t('mods_auto_timeout_desc', member=member.mention, duration=duration, count=total_warn_count, guild_id=guild.id)
+                action_embed = discord.Embed(title=t('mods_auto_action_title', guild_id=guild.id), description=action_desc, color=discord.Color.yellow())
+                action_embed.set_footer(text=get_current_version(self.client, guild_id=guild.id))
+                await channel.send(embed=action_embed)
             except: pass
 
     @commands.Cog.listener()

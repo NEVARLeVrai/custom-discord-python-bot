@@ -19,12 +19,12 @@ class Leveling_auto(commands.Cog):
         
         if leveled_up:
             embed = discord.Embed(
-                title=t('lvl_new_level_title'), 
-                description=t('lvl_new_level_desc', user=message.author.mention, level=new_lvl), 
+                title=t('lvl_new_level_title', guild_id=message.guild.id), 
+                description=t('lvl_new_level_desc', user=message.author.mention, level=new_lvl, guild_id=message.guild.id), 
                 color=discord.Color.green()
             )
             embed.set_author(name=f"{message.author.name}", icon_url=message.author.avatar)
-            embed.set_footer(text=get_current_version(self.client))
+            embed.set_footer(text=get_current_version(self.client, guild_id=message.guild.id))
             await message.channel.send(embed=embed)
 
 async def setup(client):

@@ -214,6 +214,7 @@ class AudioService:
         """Format seconds into HH:MM:SS or MM:SS."""
         if seconds is None:
             return "??:??"
+        seconds = int(seconds)
         h = seconds // 3600
         m = (seconds % 3600) // 60
         s = seconds % 60

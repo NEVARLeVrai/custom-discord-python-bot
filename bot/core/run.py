@@ -92,13 +92,13 @@ import tarfile
 BIN_DIR = os.path.join(BASE_DIR, 'bin')
 
 def install_dependencies():
-    # Ajout : variable d'environnement pour yt-dlp (runtime JS)
-    # Pour Windows, Linux, Mac : injecte le chemin du Node portable
+    # Adding: environment variable for yt-dlp (JS runtime)
+    # For Windows, Linux, Mac: inject the portable Node path
     node_exe_name = "node.exe" if platform.system().lower() == 'windows' else "node"
     node_path = os.path.join(BIN_DIR, node_exe_name)
     if os.path.exists(node_path):
         os.environ['YTDLP_JS_RUNTIME'] = f'node:{node_path}'
-        # Optionnel : ajoute bot/bin au PATH pour garantir la détection
+        # Optional: add bot/bin to PATH to guarantee detection
         os.environ['PATH'] = BIN_DIR + os.pathsep + os.environ['PATH']
     """Automatically downloads and installs missing dependencies (FFmpeg, Node.js)."""
     if not os.path.exists(BIN_DIR):
@@ -115,9 +115,9 @@ def install_dependencies():
 
     import re
     def get_latest_ffmpeg_url():
-        # Récupère dynamiquement le lien du dernier build git master essentials
+        # Dynamically retrieves the link of the latest git master essentials build
         try:
-            # FFmpeg release stable (ZIP pour Windows, tar.xz pour Linux, ZIP pour Mac)
+            # Stable FFmpeg release (ZIP for Windows, tar.xz for Linux, ZIP for Mac)
             if system == 'windows':
                 return "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip"
             elif system == 'linux':
@@ -204,7 +204,7 @@ def install_dependencies():
 
     import re
     def get_latest_node_url():
-        # Récupère dynamiquement le lien du dernier Node.js LTS pour Windows
+        # Dynamically retrieves the link of the latest Node.js LTS for Windows
         try:
             page_url = "https://nodejs.org/en/download/"
             opener = urllib.request.build_opener()

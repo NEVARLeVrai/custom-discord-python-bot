@@ -197,9 +197,10 @@ async def on_app_command_error(interaction: discord.Interaction, error: app_comm
             await cog.handle_app_command_error(interaction, error)  # type: ignore[attr-defined]
             return
 
+        guild_id = interaction.guild.id if interaction.guild else None
         embed = discord.Embed(
-            title=t('error'),
-            description=t('error_handler_not_loaded'),
+            title=t('error', guild_id=guild_id),
+            description=t('error_handler_not_loaded', guild_id=guild_id),
             color=discord.Color.red()
         )
         try:
@@ -209,7 +210,7 @@ async def on_app_command_error(interaction: discord.Interaction, error: app_comm
                 await interaction.response.send_message(embed=embed, ephemeral=True)
         except:
             pass
-        logger.error(t('slash_command_error', error=error))
+        logger.error(t('slash_command_error', error=error, guild_id=guild_id))
         logger.error(''.join(traceback.format_exception(type(error), error, error.__traceback__)))
 
 
