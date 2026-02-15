@@ -295,7 +295,6 @@ _Note: This will perform a total cleanup of dynamic data and logs, but will pres
 ---
 
 ## ⚙️ Project Structure
-
 ```
 Python-Discord-Bot/
 ├── run.bat                    # Launcher (Windows)
@@ -316,7 +315,6 @@ Python-Discord-Bot/
     ├── logs/                  # Log files
     └── tools/                 # Admin scripts (reset_bot.py, clean_lang.py)
 ```
-
 ---
 
 ## 🧩 Slash Commands
@@ -363,9 +361,7 @@ All errors are also logged to the console with full tracebacks.
 Use :
 
 ```
-
 /report [message]
-
 ```
 
 to send feedback or report a bug.
@@ -374,4 +370,3 @@ A ticket is automatically sent to the developer via webhook.
 ---
 
 **Developed with ❤️ in Python by [NEVAR](https://github.com/NEVARLeVrai)**
-```
