@@ -199,14 +199,7 @@ All tools are installed in `bot/bin/` and **will not affect your system**.
 
 ### Python Dependencies
 
-The bot automatically installs these packages from `bot/core/requirements.txt`:
-
-- `discord.py` – Discord API wrapper
-- `yt-dlp[default]` – YouTube video extraction
-- `yt-dlp-ejs` – JavaScript runtime support for yt-dlp
-- `PyNaCl` – Voice support
-- `openai` – GPT and DALL·E integration
-- `mutagen`, `requests`, `python-dotenv`, `pytz` – Utilities
+The bot automatically installs these packages from `bot/core/requirements.txt`
 
 ### Token Configuration
 
