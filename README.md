@@ -36,8 +36,8 @@ A complete **Discord bot** with numerous features, developed in **Python** using
 - **`/report [message]`** – Report a bug or send feedback
 - **`/stop`** – Stops the bot _(owner only)_
 - **`/sync`** Re-sync slash commands _(owner only)_
-- **`/clearslash`**, **`/clearslashcommands`**, or **`/deleteslash`** – Remove all slash commands _(owner only)_
-- **`/slashinfo`**, **`/slashdebug`**, or **`/cmdinfo`** – Display slash command diagnostics _(owner only)_
+- **`/clearslash`** – Remove all slash commands _(owner only)_
+- **`/slashinfo`** – Display slash command diagnostics _(owner only)_
 
 ---
 
