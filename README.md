@@ -315,6 +315,8 @@ Python-Discord-Bot/
     ├── Sounds/                # Audio files for Soundboard
     ├── logs/                  # Log files
     └── tools/                 # Admin scripts (reset_bot.py, clean_lang.py)
+```
+
 ---
 
 ## 🧩 Slash Commands
