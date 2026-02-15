@@ -14,9 +14,14 @@ class AudioService:
         self.history: Dict[int, List[Dict[str, Any]]] = {}  # guild_id -> previous songs
         self.current_track: Dict[int, Dict[str, Any]] = {}  # guild_id -> current playing track
         self.ffmpeg_path = client.paths['ffmpeg_exe']
+        # Optimized flags: 
+        # -threads 0: use all CPU cores
+        # -probesize 32 / -analyzeduration 0: instant start
+        # -loglevel panic: no I/O delay from logging
+        # -reconnect: keep streams alive
         self.ffmpeg_options = {
-            'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
-            'options': '-vn',
+            'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5 -probesize 32 -analyzeduration 0 -loglevel panic',
+            'options': '-vn -threads 0',
             'executable': self.ffmpeg_path
         }
         self._last_play_time: Dict[int, float] = {}
@@ -91,11 +96,14 @@ class AudioService:
         volume = self.get_volume(guild.id)
 
         if is_local:
-            options = {'executable': self.ffmpeg_path}
+            # For local files, we still want performance flags
+            options = {
+                'before_options': '-probesize 32 -analyzeduration 0 -loglevel panic',
+                'options': '-vn -threads 0',
+                'executable': self.ffmpeg_path
+            }
             if start_time > 0:
-                options['options'] = f'-vn -ss {start_time}'
-            else:
-                options['options'] = '-vn'
+                options['before_options'] = f'-ss {start_time} {options["before_options"]}'
         else:
             before_opts = self.ffmpeg_options['before_options']
             if start_time > 0:

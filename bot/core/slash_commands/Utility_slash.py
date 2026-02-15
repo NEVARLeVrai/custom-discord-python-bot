@@ -360,7 +360,7 @@ class Utility_slash(commands.Cog):
             except:
                 desc = "Bot disconnected."
             
-            embed = discord.Embed(title=t('audio_error_title', guild_id=guild_id), description=t('yt_leave_desc', guild_id=guild_id), color=discord.Color.green())
+            embed = discord.Embed(title=t('yt_leave_title', guild_id=guild_id), description=t('yt_leave_desc', guild_id=guild_id), color=discord.Color.green())
             embed.set_author(name=t('help_requested_by', user=interaction.user.name, guild_id=guild_id), icon_url=interaction.user.avatar)
             embed.set_footer(text=get_current_version(self.client, guild_id=guild_id))
             await interaction.response.send_message(embed=embed)

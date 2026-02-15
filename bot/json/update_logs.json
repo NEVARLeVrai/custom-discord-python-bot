@@ -1,8 +1,13 @@
 {
   "_comment": "VERSIONING RULES: Bot V.DDMM.HOTFIX[TYPE]-YY | TYPE: a (Alpha) > b (Beta) > s (Stable). HOTFIX: 1.0.0 or more progressive.",
   "_comment1": "I have cleaned older versions",
-  "current_version": "Bot V.1602.2s-26",
+  "current_version": "Bot V.1602.3s-26",
   "history": [
+    {
+      "version": "Bot V.1602.3s-26",
+      "date": "16/02/2026",
+      "logs": "Universal Stability: Enabled local download-first strategy for all platforms (YouTube, SoundCloud, etc.) to eliminate buffering. FFmpeg Elite: Optimized with multi-threading (-threads 0), fast probing, and silent logging for smooth performance. UI & UX: Fixed '/leave' localization, restored 'Stop' button embed deletion, and implemented real-time progress bar sync for pause/resume and song completion."
+    },
     {
       "version": "Bot V.1602.2s-26",
       "date": "16/02/2026",

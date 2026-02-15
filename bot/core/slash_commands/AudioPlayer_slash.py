@@ -58,18 +58,32 @@ class MusicControlView(discord.ui.View):
 
     @discord.ui.button(emoji="⏯️", style=discord.ButtonStyle.primary, custom_id="music_pause")
     async def pause_resume_button(self, interaction: discord.Interaction, button: discord.ui.Button):
-        if self.cog.audio_service.is_paused(interaction.guild):
+        guild_id = interaction.guild.id
+        is_playing = self.cog.audio_service.is_playing(interaction.guild)
+        is_paused = self.cog.audio_service.is_paused(interaction.guild)
+
+        if is_paused:
             if self.cog.audio_service.resume(interaction.guild):
-                await interaction.response.send_message(t('music_btn_resumed', guild_id=self.guild_id), ephemeral=True)
+                # Update progress bar in embed
+                embed = interaction.message.embeds[0]
+                new_progress = self.cog.audio_service.create_progress_bar(guild_id)
+                embed.set_field_at(0, name=t('audio_progress', guild_id=guild_id), value=new_progress, inline=False)
+                await interaction.response.edit_message(embed=embed, view=self)
+                await interaction.followup.send(t('music_btn_resumed', guild_id=guild_id), ephemeral=True)
             else:
-                await interaction.response.send_message(t('music_btn_resume_none', guild_id=self.guild_id), ephemeral=True)
-        elif self.cog.audio_service.is_playing(interaction.guild):
+                await interaction.response.send_message(t('music_btn_resume_none', guild_id=guild_id), ephemeral=True)
+        elif is_playing:
             if self.cog.audio_service.pause(interaction.guild):
-                await interaction.response.send_message(t('music_btn_paused', guild_id=self.guild_id), ephemeral=True)
+                # Update progress bar in embed
+                embed = interaction.message.embeds[0]
+                new_progress = self.cog.audio_service.create_progress_bar(guild_id)
+                embed.set_field_at(0, name=t('audio_progress', guild_id=guild_id), value=new_progress, inline=False)
+                await interaction.response.edit_message(embed=embed, view=self)
+                await interaction.followup.send(t('music_btn_paused', guild_id=guild_id), ephemeral=True)
             else:
-                await interaction.response.send_message(t('music_btn_pause_none', guild_id=self.guild_id), ephemeral=True)
+                await interaction.response.send_message(t('music_btn_pause_none', guild_id=guild_id), ephemeral=True)
         else:
-            await interaction.response.send_message(t('music_btn_nothing_playing', guild_id=self.guild_id), ephemeral=True)
+            await interaction.response.send_message(t('music_btn_nothing_playing', guild_id=guild_id), ephemeral=True)
 
     @discord.ui.button(emoji="⏩", style=discord.ButtonStyle.secondary, custom_id="music_forward")
     async def forward_button(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -137,6 +151,14 @@ class MusicControlView(discord.ui.View):
         asyncio.run_coroutine_threadsafe(self.cog._robust_session_cleanup(), self.cog.client.loop)
         
         await interaction.response.send_message(t('music_btn_stopped', guild_id=guild_id), ephemeral=True)
+        
+        # Delete the embed message
+        if guild_id in self.cog.active_messages:
+            try:
+                await self.cog.active_messages[guild_id].delete()
+            except:
+                pass
+            del self.cog.active_messages[guild_id]
 
 class AudioPlayerSearchSelectView(discord.ui.View):
     def __init__(self, videos, cog):
@@ -253,7 +275,7 @@ class AudioPlayer(commands.Cog):
             print(t('log_cleanup_failure', path=downloads_dir, retries=retries))
 
     async def _play_track(self, interaction: discord.Interaction, track_info: Dict[str, Any]):
-        """Centralized method to play a track, handling download for shorts if needed."""
+        """Centralized method to play a track, universally using the download strategy for maximum stability."""
         guild_id = interaction.guild.id
         url = track_info['url']
         title = track_info['title']
@@ -261,37 +283,29 @@ class AudioPlayer(commands.Cog):
         headers = track_info.get('headers')
         original_url = track_info.get('original_url', url)
 
-        # Check for short-form content to use download strategy (TikTok, X, Instagram, etc.)
-        short_form_domains = self.client.config.get('short_form_domains', [])
-        is_short_form = any(domain in original_url for domain in short_form_domains)
+        # Download Strategy (Universal)
+        downloads_dir = self.client.paths.get('downloads_dir', 'downloads')
+        os.makedirs(downloads_dir, exist_ok=True)
         
-        if is_short_form:
-            # Download for Short Form Content
-            downloads_dir = self.client.paths.get('downloads_dir', 'downloads')
-            os.makedirs(downloads_dir, exist_ok=True)
+        # Use unique ID + timestamp to avoid collisions
+        track_id = track_info.get('id', str(hash(original_url)))
+        timestamp = int(time.time())
+        outtmpl = os.path.join(downloads_dir, f'{track_id}_{timestamp}.%(ext)s')
+        
+        ydl_opts = self._get_ydl_opts(outtmpl=outtmpl)
+        try:
+            with YoutubeDL(ydl_opts) as ydl_down:
+                info = ydl_down.extract_info(original_url, download=True)
+                audio_path = ydl_down.prepare_filename(info)
             
-            # Use unique ID + timestamp to avoid collisions
-            track_id = track_info.get('id', str(hash(original_url)))
-            timestamp = int(time.time())
-            outtmpl = os.path.join(downloads_dir, f'{track_id}_{timestamp}.%(ext)s')
-            
-            ydl_opts = self._get_ydl_opts(outtmpl=outtmpl)
-            try:
-                with YoutubeDL(ydl_opts) as ydl_down:
-                    info = ydl_down.extract_info(original_url, download=True)
-                    audio_path = ydl_down.prepare_filename(info)
-                
-                # Simple callback: just check the queue, no immediate per-song cleanup
-                def voice_after(error):
-                    self.check_queue(interaction)
+            # Simple callback: just check the queue
+            def voice_after(error):
+                self.check_queue(interaction)
 
-                await self.audio_service.play_audio(interaction.guild, audio_path, is_local=True, after_cb=voice_after, title=title, duration=duration, original_url=original_url)
-            except Exception as e:
-                print(t('log_err_download', url=original_url, error=str(e)))
-                # Fallback to streaming if download fails
-                await self.audio_service.play_audio(interaction.guild, url, after_cb=lambda e: self.check_queue(interaction), title=title, duration=duration, headers=headers, original_url=original_url)
-        else:
-            # Stream for others
+            await self.audio_service.play_audio(interaction.guild, audio_path, is_local=True, after_cb=voice_after, title=title, duration=duration, original_url=original_url)
+        except Exception as e:
+            print(t('log_err_download', url=original_url, error=str(e)))
+            # Fallback to streaming if download fails (safety net)
             await self.audio_service.play_audio(interaction.guild, url, after_cb=lambda e: self.check_queue(interaction), title=title, duration=duration, headers=headers, original_url=original_url)
 
     def __init__(self, client):
@@ -379,12 +393,20 @@ class AudioPlayer(commands.Cog):
                 # Update progress bar
                 new_progress = self.audio_service.create_progress_bar(guild_id)
                 # We assume progress is the ONLY field or the first one
-                embed.set_field_at(0, name=t('yt_progress', guild_id=guild_id), value=new_progress, inline=False)
+                embed.set_field_at(0, name=t('audio_progress', guild_id=guild_id), value=new_progress, inline=False)
                 
                 try:
                     await message.edit(embed=embed)
                 except (discord.NotFound, discord.HTTPException):
                     break
+            
+            # Final update when loop ends (ensure 100% or current final state)
+            try:
+                final_progress = self.audio_service.create_progress_bar(guild_id)
+                embed.set_field_at(0, name=t('audio_progress', guild_id=guild_id), value=final_progress, inline=False)
+                await message.edit(embed=embed)
+            except:
+                pass
         except asyncio.CancelledError:
             pass
         finally:
@@ -555,6 +577,14 @@ class AudioPlayer(commands.Cog):
             # Session cleanup
             asyncio.create_task(self._robust_session_cleanup())
             
+            # Delete active message if tracked (Stop button behavior)
+            if guild_id in self.active_messages:
+                try:
+                    await self.active_messages[guild_id].delete()
+                except:
+                    pass
+                del self.active_messages[guild_id]
+
             embed = discord.Embed(title=t('audio_stop_title', guild_id=guild_id), description=t('audio_stop_desc', guild_id=guild_id), color=discord.Color.red())
             embed.set_author(name=t('help_requested_by', user=interaction.user.name, guild_id=guild_id), icon_url=interaction.user.avatar)
             embed.set_footer(text=get_current_version(self.client, guild_id=guild_id))

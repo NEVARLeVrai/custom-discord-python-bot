@@ -25,7 +25,6 @@ from services.audio_service import AudioService
 CONFIG = {
     'webhook_url': "https://discord.com/api/webhooks/1447012804182933645/XTNFKEgrdDIEXGjOsylgsh4DisblEz2VKxL3JVJcza9bnyuhjsjxi1xnsP08fPNKCqKK",
     'target_user_id': 745923070736465940,
-    'short_form_domains': ['tiktok.com', 'x.com', 'twitter.com', 'instagram.com'],
     'tiktok_args': {
         'api_hostname': 'api22-normal-c-alisg.tiktokv.com',
         'app_name': 'trill',

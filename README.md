@@ -149,11 +149,9 @@ Supported formats : MP3 / MP4 / M4A / OGG / OPUS / WAV / FLAC / AAC
 - **`/mvolume [0-200]`** – Set music volume (real-time, no restart)
 - **Dynamic Progress Bar** – "Now Playing" embed includes a visual progress bar
 
-**Smart Logic & Stability:**
-
-- **Smart "Previous" (⏮️)** – Restarts the current song if played > 5s or if it just finished. Perfect for replaying!
+- **Universal Local Playback (⏮️)** – The bot now automatically downloads **all** audio sources locally before playing. This ensures 100% stability, no buffering, and perfect seek/skip utility for every supported platform (YouTube, TikTok, SoundCloud, etc.).
 - **Persistent UI** – The player message is only replaced when a new track starts. It stays visible even if the song ends or the queue is empty.
-- **Universal Seek Support** – Skip buttons (+15s / -15s) now work perfectly for both YouTube streams and local files (TikTok, X, etc.).
+- **Universal Seek Support** – Skip buttons (+15s / -15s) now work perfectly for all platforms.
 - **Session-Based Cleanup** – Temporary audio files are preserved during your session for stability and cleared only when you leave or stop.
 - **Universal Exit Listener** – One-click cleanup even if the bot is kicked or timed out.
 
@@ -295,6 +293,7 @@ _Note: This will perform a total cleanup of dynamic data and logs, but will pres
 ---
 
 ## ⚙️ Project Structure
+
 ```
 Python-Discord-Bot/
 ├── run.bat                    # Launcher (Windows)
@@ -315,6 +314,7 @@ Python-Discord-Bot/
     ├── logs/                  # Log files
     └── tools/                 # Admin scripts (reset_bot.py, clean_lang.py)
 ```
+
 ---
 
 ## 🧩 Slash Commands

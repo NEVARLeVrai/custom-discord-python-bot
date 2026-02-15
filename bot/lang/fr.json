@@ -531,5 +531,7 @@
   "vocal_kick_all_desc": "Tous les utilisateurs ont été expulsés du vocal.",
   "vocal_kick_desc": "**{user}** a été expulsé du salon vocal.",
   "vocal_kick_error": "Erreur lors de l'expulsion : {error}",
-  "vocal_kick_title": "Vocal Kick"
+  "vocal_kick_title": "Vocal Kick",
+  "yt_leave_desc": "Le bot a quitté le salon vocal.",
+  "yt_leave_title": "Salon Vocal"
 }

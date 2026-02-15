@@ -531,5 +531,7 @@
   "vocal_kick_all_desc": "All users have been kicked from voice.",
   "vocal_kick_desc": "**{user}** has been kicked from the voice channel.",
   "vocal_kick_error": "Error during kick: {error}",
-  "vocal_kick_title": "Voice Kick"
+  "vocal_kick_title": "Voice Kick",
+  "yt_leave_desc": "The bot has left the voice channel.",
+  "yt_leave_title": "Voice Channel"
 }
