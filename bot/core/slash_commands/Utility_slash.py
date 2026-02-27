@@ -428,35 +428,76 @@ class Utility_slash(commands.Cog):
         return None
 
     def parse_time(self, time_str, user_tz=None, base_time=None):
-        """Parses time strings like 10m, 1h, 1d or absolute HH:MM into a target timestamp"""
+        """Parses time strings into a target timestamp.
+        Formats: 10m, 1h, 18:30, 18:30:45, 27/02 18:30, 27/02/2026 18:30
+        """
         if base_time is None:
             base_time = datetime.datetime.now(datetime.timezone.utc)
             
         units = {'s': 1, 'm': 60, 'h': 3600, 'd': 86400}
         
-        # Check for relative time (e.g. 10m)
+        # 1. Relative time (e.g. 10m)
         match_rel = re.match(r"^(\d+)([smhd])$", time_str.lower())
         if match_rel:
             amount, unit = match_rel.groups()
             return int(base_time.timestamp()) + (int(amount) * units[unit])
 
-        # Check for absolute time (e.g. 18:30)
-        match_abs = re.match(r"^(\d{1,2}):(\d{2})$", time_str)
-        if match_abs:
-            if not user_tz:
+        if not user_tz:
+            # Need timezone for all following formats
+            if re.search(r"[:/]", time_str):
                 return "timezone_not_set"
-            hours, minutes = map(int, match_abs.groups())
-            if hours > 23 or minutes > 59: return None
-            
-            # Use current time in user's timezone based on base_time
-            now_tz = base_time.astimezone(user_tz)
-            target = now_tz.replace(hour=hours, minute=minutes, second=0, microsecond=0)
-            
-            # If target is in the past, assume tomorrow
-            if target <= now_tz:
+            return None
+
+        now_tz = base_time.astimezone(user_tz)
+        target = None
+
+        # 2. HH:MM:SS
+        match_hms = re.match(r"^(\d{1,2}):(\d{2}):(\d{2})$", time_str)
+        if match_hms:
+            h, m, s = map(int, match_hms.groups())
+            if h < 24 and m < 60 and s < 60:
+                target = now_tz.replace(hour=h, minute=m, second=s, microsecond=0)
+
+        # 3. HH:MM
+        if not target:
+            match_hm = re.match(r"^(\d{1,2}):(\d{2})$", time_str)
+            if match_hm:
+                h, m = map(int, match_hm.groups())
+                if h < 24 and m < 60:
+                    target = now_tz.replace(hour=h, minute=m, second=0, microsecond=0)
+
+        # 4. DD/MM/YYYY HH:MM (and variants)
+        # Matches: DD/MM/YYYY HH:MM, DD/MM/YY HH:MM, DD/MM HH:MM
+        if not target:
+            match_date = re.match(r"^(\d{1,2})/(\d{1,2})(?:/(\d{2,4}))?\s+(\d{1,2}):(\d{2})(?::(\d{2}))?$", time_str)
+            if match_date:
+                day, month, year, h, m, s = match_date.groups()
+                day, month, h, m = map(int, [day, month, h, m])
+                s = int(s) if s else 0
+                
+                # Resolve year
+                if year:
+                    year = int(year)
+                    if year < 100: year += 2000
+                else:
+                    year = now_tz.year
+                
+                try:
+                    target = user_tz.localize(datetime.datetime(year, month, day, h, m, s))
+                except ValueError:
+                    return None
+
+        if target:
+            # If target is in the past and no date/year was specified, assume tomorrow
+            if target <= now_tz and ":" in time_str and "/" not in time_str:
                 target += datetime.timedelta(days=1)
+            
+            # If still in the past (only possible if date was specified)
+            if target <= now_tz:
+                return None
                 
             return int(target.timestamp())
+
         return None
 
     @tasks.loop(minutes=1)
@@ -468,12 +509,14 @@ class Utility_slash(commands.Cog):
         for reminder in reminders[:]:
             try:
                 target_time = reminder['target_time']
-                is_initial = now >= target_time and not reminder.get('notified', False)
+                notified = reminder.get('notified', False)
+                is_initial = now >= target_time and not notified
                 spam_interval = reminder.get('spam_interval', 0) * 60
                 should_resend = False
                 
-                if not is_initial and not reminder.get('acknowledged', False) and spam_interval > 0:
-                    last_notified = reminder.get('last_notified', target_time)
+                # Only resend if we are past target_time AND it has already been notified once
+                if now >= target_time and notified and not reminder.get('acknowledged', False) and spam_interval > 0:
+                    last_notified = reminder.get('last_notified') or target_time
                     if now >= last_notified + spam_interval:
                         should_resend = True
 

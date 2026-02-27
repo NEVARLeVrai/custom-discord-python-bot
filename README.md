@@ -90,7 +90,10 @@ A complete **Discord bot** with numerous features, developed in **Python** using
 Personal reminder system with timezone awareness.
 
 - **Commands**: `/reminder set`, `/reminder list`, `/reminder cancel`, `/reminder timezone set`.
-- **Time Formats**: Absolute (`18:30`) or Relative (`10m`, `1h`, `2d`).
+- **Time Formats**:
+  - Relative: `10m`, `1h`, `2d`
+  - Absolute (Time): `18:30`, `18:30:45`
+  - Absolute (Date): `27/02 18:30`, `27/02/26 18:30`, `27/02/2026 18:30`
 - **Confirmation**: Uses Discord dynamic timestamps (auto-adjusts to your device).
 - **Spam Mode**: Optional recurring alerts until acknowledged via a button.
 

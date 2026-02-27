@@ -1,10 +1,20 @@
 {
   "_comment": "VERSIONING RULES: Bot V.DDMM.HOTFIX[TYPE]-YY | TYPE: a (Alpha) > b (Beta) > s (Stable). HOTFIX: 1.0.0 or more progressive.",
   "_comment1": "I have cleaned older versions",
-  "current_version": "Bot V.2702.4s-26",
+  "current_version": "Bot V.2702.6s-26",
   "history": [
     {
-      "version": "Bot V.2702.4s-26",
+      "version": "Bot V.2702.3s-26",
+      "date": "27/02/2026",
+      "logs": "Reminder Enhancement: Added support for seconds (HH:MM:SS) and full dates (DD/MM, DD/MM/YY, DD/MM/YYYY) in the /reminder set command. Perfect for long-term scheduling."
+    },
+    {
+      "version": "Bot V.2702.2s-26",
+      "date": "27/02/2026",
+      "logs": "UX & Localization: Fixed a 1-minute offset in absolute time parsing. Fixed a logic bug where reminders with spam intervals triggered too early. Localized hardcoded code strings and added guild context for background reminder notifications to ensure correct language (FR/EN) is always used."
+    },
+    {
+      "version": "Bot V.2702.1s-26",
       "date": "27/02/2026",
       "logs": "Code Consolidation: Merged reminder and timezone commands into 'Utility_slash.py' for better organization. Maintenance: Localized 'reset_bot.py' with dynamic language support (FR/EN) and fixed JSON initialization logic."
     },
