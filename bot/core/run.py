@@ -12,6 +12,7 @@ import platform
 import urllib.request
 import zipfile
 import tarfile
+import time
 
 # Set BASE_DIR to the 'bot' folder (parent of 'core') to allow imports
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -108,7 +109,40 @@ def install_dependencies():
     os.environ["PATH"] = BIN_DIR + os.pathsep + os.environ["PATH"]
     system = platform.system().lower()
     
-    # --- FFmpeg Installation ---
+    def download_report_hook(block_count, block_size, total_size):
+        if total_size <= 0: return
+        
+        # Initialize start_time on first block
+        if not hasattr(download_report_hook, 'start_time'):
+            download_report_hook.start_time = time.time()
+            return
+            
+        elapsed = time.time() - download_report_hook.start_time
+        downloaded = block_count * block_size
+        progress = min(1.0, downloaded / total_size)
+        percent = int(progress * 100)
+        
+        # Calculate speed in MB/s
+        speed = (downloaded / (1024 * 1024)) / elapsed if elapsed > 0 else 0
+        
+        # Format sizes in MB
+        dl_mb = downloaded / (1024 * 1024)
+        total_mb = total_size / (1024 * 1024)
+        
+        msg = t('run_dl_progress', 
+                percent=percent, 
+                speed=f"{speed:.2f}", 
+                downloaded=f"{dl_mb:.2f}", 
+                total=f"{total_mb:.2f}")
+        
+        # Print with carriage return for dynamic update
+        sys.stdout.write(f"\r{msg}")
+        sys.stdout.flush()
+        
+        if downloaded >= total_size:
+            sys.stdout.write("\n")
+            # Cleanup for next download
+            delattr(download_report_hook, 'start_time')
     ffmpeg_exe = "ffmpeg.exe" if system == 'windows' else "ffmpeg"
     ffmpeg_path = os.path.join(BIN_DIR, ffmpeg_exe)
     is_mac = system == 'darwin'
@@ -140,7 +174,7 @@ def install_dependencies():
                 opener = urllib.request.build_opener()
                 opener.addheaders = [('User-agent', 'Mozilla/5.0')]
                 urllib.request.install_opener(opener)
-                urllib.request.urlretrieve(url, download_path)
+                urllib.request.urlretrieve(url, download_path, reporthook=download_report_hook)
                 print(t('run_dl_complete'))
                 print(t('run_extract_ffmpeg'))
                 with zipfile.ZipFile(download_path, 'r') as zip_ref:
@@ -163,7 +197,7 @@ def install_dependencies():
                 opener = urllib.request.build_opener()
                 opener.addheaders = [('User-agent', 'Mozilla/5.0')]
                 urllib.request.install_opener(opener)
-                urllib.request.urlretrieve(url, download_path)
+                urllib.request.urlretrieve(url, download_path, reporthook=download_report_hook)
                 print(t('run_extract_ffmpeg'))
                 with tarfile.open(download_path, "r:xz") as tar:
                     for member in tar.getmembers():
@@ -177,7 +211,7 @@ def install_dependencies():
                 filename = "ffmpeg.zip"
                 download_path = os.path.join(BIN_DIR, filename)
                 print(t('run_dl_start', url=url))
-                urllib.request.urlretrieve(url, download_path)
+                urllib.request.urlretrieve(url, download_path, reporthook=download_report_hook)
                 print(t('run_extract_ffmpeg'))
                 with zipfile.ZipFile(download_path, 'r') as zip_ref:
                     for file in zip_ref.namelist():
@@ -235,12 +269,12 @@ def install_dependencies():
             url = get_latest_node_url()
             if system == 'windows':
                 print(t('run_dl_start', url=url))
-                urllib.request.urlretrieve(url, node_bin_path)
+                urllib.request.urlretrieve(url, node_bin_path, reporthook=download_report_hook)
             elif system == 'linux':
                 filename = "node.tar.gz"
                 download_path = os.path.join(BIN_DIR, filename)
                 print(t('run_dl_start', url=url))
-                urllib.request.urlretrieve(url, download_path)
+                urllib.request.urlretrieve(url, download_path, reporthook=download_report_hook)
                 print(t('run_extract_node'))
                 with tarfile.open(download_path, "r:gz") as tar:
                     for member in tar.getmembers():
@@ -254,7 +288,7 @@ def install_dependencies():
                 filename = "node.tar.gz"
                 download_path = os.path.join(BIN_DIR, filename)
                 print(t('run_dl_start', url=url))
-                urllib.request.urlretrieve(url, download_path)
+                urllib.request.urlretrieve(url, download_path, reporthook=download_report_hook)
                 print(t('run_extract_node'))
                 with tarfile.open(download_path, "r:gz") as tar:
                     for member in tar.getmembers():

@@ -85,6 +85,22 @@ A complete **Discord bot** with numerous features, developed in **Python** using
 - **`/deldms`** – Delete all bot DMs _(admin only)_
 - **`/tts [language] [volume] [text]`** – Make the bot speak (e.g. `/tts en 3.0 Hello`)
 
+### 🕒 Reminders & Timezone
+
+Personal reminder system with timezone awareness.
+
+- **Commands**: `/reminder set`, `/reminder list`, `/reminder cancel`, `/reminder timezone set`.
+- **Time Formats**: Absolute (`18:30`) or Relative (`10m`, `1h`, `2d`).
+- **Confirmation**: Uses Discord dynamic timestamps (auto-adjusts to your device).
+- **Spam Mode**: Optional recurring alerts until acknowledged via a button.
+
+---
+
+### 🧹 Maintenance & Reset
+
+- **Cleanup Tool**: `bot/tools/reset_bot.py` is now fully localized (FR/EN) and ensures data integrity.
+- **Launcher UX**: `run.py` displays real-time download speed and progress for dependencies.
+
 > The bot automatically joins the user's voice channel and stays connected for other audio features.
 
 ---
@@ -190,8 +206,8 @@ Powered by [yt-dlp](https://github.com/yt-dlp/yt-dlp).
 ✨ **Magic**: On first launch, the bot will **automatically**:
 
 - Install all Python dependencies (`discord.py`, `yt-dlp`, `openai`, etc.)
-- Download **FFmpeg** (for audio/soundboard)
-- Download **Node.js** (for AudioPlayer with yt-dlp)
+- Download **FFmpeg** (for audio/soundboard) with real-time speed & progress tracking
+- Download **Node.js** (for AudioPlayer) with real-time speed & progress tracking
 
 All tools are installed in `bot/bin/` and **will not affect your system**.
 

@@ -1,10 +1,16 @@
 import discord
 from discord import app_commands
-from discord.ext import commands
+from discord.ext import commands, tasks
 import random
 import io
 import asyncio
 import traceback
+import json
+import os
+import time
+import re
+import uuid
+import pytz
 from services.version_service import get_current_version
 from lang.lang_utils import t
 import datetime
@@ -20,6 +26,18 @@ class Utility_slash(commands.Cog):
             GPT_API_KEY = f.read().strip()
         self.openai_client = OpenAI(api_key=GPT_API_KEY)
         self.rate_limit_delay = 1
+        
+        # Reminder setup
+        self.reminders_path = client.paths['reminders_json']
+        self.timezone_path = os.path.join(os.path.dirname(self.reminders_path), 'user_timezones.json')
+        self.check_reminders.start()
+
+    async def cog_load(self):
+        # Register the persistent view
+        self.client.add_view(ReminderView(self))
+
+    def cog_unload(self):
+        self.check_reminders.cancel()
     
     def is_bot_dm(self, message):
         return message.author == self.client.user and isinstance(message.channel, discord.DMChannel)
@@ -369,6 +387,244 @@ class Utility_slash(commands.Cog):
             embed.set_author(name=t('help_requested_by', user=interaction.user.name, guild_id=guild_id), icon_url=interaction.user.avatar)
             embed.set_footer(text=get_current_version(self.client, guild_id=guild_id))
             await interaction.response.send_message(embed=embed, ephemeral=True)
+
+    # --- Reminder Logic ---
+
+    def load_reminders(self):
+        if os.path.exists(self.reminders_path):
+            try:
+                with open(self.reminders_path, "r", encoding='utf-8') as f:
+                    data = json.load(f)
+                    return data if isinstance(data, list) else []
+            except:
+                return []
+        return []
+
+    def save_reminders(self, reminders):
+        with open(self.reminders_path, "w", encoding='utf-8') as f:
+            json.dump(reminders, f, indent=4)
+
+    def load_timezones(self):
+        if os.path.exists(self.timezone_path):
+            try:
+                with open(self.timezone_path, "r", encoding='utf-8') as f:
+                    return json.load(f)
+            except:
+                return {}
+        return {}
+
+    def save_timezones(self, timezones):
+        with open(self.timezone_path, "w", encoding='utf-8') as f:
+            json.dump(timezones, f, indent=4)
+
+    def get_user_timezone(self, user_id):
+        timezones = self.load_timezones()
+        tz_name = timezones.get(str(user_id))
+        if tz_name:
+            try:
+                return pytz.timezone(tz_name)
+            except:
+                pass
+        return None
+
+    def parse_time(self, time_str, user_tz=None, base_time=None):
+        """Parses time strings like 10m, 1h, 1d or absolute HH:MM into a target timestamp"""
+        if base_time is None:
+            base_time = datetime.datetime.now(datetime.timezone.utc)
+            
+        units = {'s': 1, 'm': 60, 'h': 3600, 'd': 86400}
+        
+        # Check for relative time (e.g. 10m)
+        match_rel = re.match(r"^(\d+)([smhd])$", time_str.lower())
+        if match_rel:
+            amount, unit = match_rel.groups()
+            return int(base_time.timestamp()) + (int(amount) * units[unit])
+
+        # Check for absolute time (e.g. 18:30)
+        match_abs = re.match(r"^(\d{1,2}):(\d{2})$", time_str)
+        if match_abs:
+            if not user_tz:
+                return "timezone_not_set"
+            hours, minutes = map(int, match_abs.groups())
+            if hours > 23 or minutes > 59: return None
+            
+            # Use current time in user's timezone based on base_time
+            now_tz = base_time.astimezone(user_tz)
+            target = now_tz.replace(hour=hours, minute=minutes, second=0, microsecond=0)
+            
+            # If target is in the past, assume tomorrow
+            if target <= now_tz:
+                target += datetime.timedelta(days=1)
+                
+            return int(target.timestamp())
+        return None
+
+    @tasks.loop(minutes=1)
+    async def check_reminders(self):
+        reminders = self.load_reminders()
+        now = int(time.time())
+        updated = False
+        
+        for reminder in reminders[:]:
+            try:
+                target_time = reminder['target_time']
+                is_initial = now >= target_time and not reminder.get('notified', False)
+                spam_interval = reminder.get('spam_interval', 0) * 60
+                should_resend = False
+                
+                if not is_initial and not reminder.get('acknowledged', False) and spam_interval > 0:
+                    last_notified = reminder.get('last_notified', target_time)
+                    if now >= last_notified + spam_interval:
+                        should_resend = True
+
+                if is_initial or should_resend:
+                    user = self.client.get_user(reminder['user_id'])
+                    if not user:
+                        try: user = await self.client.fetch_user(reminder['user_id'])
+                        except: pass
+                    
+                    if user:
+                        # Resolve guild context for localization
+                        guild_id = reminder.get('guild_id')
+                        if not guild_id:
+                            channel = self.client.get_channel(reminder['channel_id'])
+                            if channel and hasattr(channel, 'guild'):
+                                guild_id = channel.guild.id
+
+                        embed = discord.Embed(title=t('reminder_embed_title', guild_id=guild_id), description=reminder['message'], color=discord.Color.gold())
+                        embed.set_footer(text=get_current_version(self.client, guild_id=guild_id))
+                        view = ReminderView(self, guild_id=guild_id)
+                        destination_type = reminder.get('destination', 'channel')
+                        msg = None
+                        
+                        if destination_type == 'dm':
+                            try: msg = await user.send(embed=embed, view=view)
+                            except:
+                                channel = self.client.get_channel(reminder['channel_id'])
+                                if channel: msg = await channel.send(content=user.mention, embed=embed, view=view)
+                        else:
+                            channel = self.client.get_channel(reminder['channel_id'])
+                            if channel:
+                                try: msg = await channel.send(content=user.mention, embed=embed, view=view)
+                                except:
+                                    try: msg = await user.send(embed=embed, view=view)
+                                    except: pass
+                            else:
+                                try: msg = await user.send(embed=embed, view=view)
+                                except: pass
+                        
+                        if msg: reminder['message_id'] = msg.id
+                        reminder['notified'] = True
+                        reminder['last_notified'] = now
+                        updated = True
+                
+                if reminder.get('acknowledged', False) or (reminder.get('notified', False) and spam_interval <= 0):
+                    reminders.remove(reminder)
+                    updated = True
+            except Exception as e:
+                print(f"Error checking reminder: {e}")
+
+        if updated: self.save_reminders(reminders)
+
+    @check_reminders.before_loop
+    async def before_check_reminders(self):
+        await self.client.wait_until_ready()
+
+    reminder_group = app_commands.Group(name="reminder", description="Manage your reminders")
+    timezone_group = app_commands.Group(name="timezone", description="Manage your local timezone", parent=reminder_group)
+
+    @timezone_group.command(name="set", description="Set your local timezone")
+    @app_commands.describe(name="Timezone name (e.g. Europe/Paris)")
+    async def timezone_set(self, interaction: discord.Interaction, name: str):
+        guild_id = interaction.guild.id if interaction.guild else None
+        try: pytz.timezone(name)
+        except: return await interaction.response.send_message(t('reminder_timezone_error_invalid', guild_id=guild_id), ephemeral=True)
+            
+        timezones = self.load_timezones()
+        timezones[str(interaction.user.id)] = name
+        self.save_timezones(timezones)
+        await interaction.response.send_message(t('reminder_timezone_success', tz=name, guild_id=guild_id), ephemeral=True)
+
+    @timezone_group.command(name="info", description="Show your current timezone")
+    async def timezone_info(self, interaction: discord.Interaction):
+        guild_id = interaction.guild.id if interaction.guild else None
+        tz_name = self.load_timezones().get(str(interaction.user.id))
+        if not tz_name: return await interaction.response.send_message(t('reminder_timezone_not_set', guild_id=guild_id), ephemeral=True)
+        await interaction.response.send_message(t('reminder_timezone_info', tz=tz_name, guild_id=guild_id), ephemeral=True)
+
+    @reminder_group.command(name="set", description="Set a reminder")
+    @app_commands.describe(time="Time format (10m, 1h, 18:30)", message="Reminder message", spam_interval="Repeat every X minutes if not ack")
+    @app_commands.choices(destination=[app_commands.Choice(name="Channel", value="channel"), app_commands.Choice(name="DM", value="dm")])
+    async def reminder_set(self, interaction: discord.Interaction, time: str, message: str, spam_interval: int = 0, destination: str = "channel"):
+        guild_id = interaction.guild.id if interaction.guild else None
+        user_tz = self.get_user_timezone(interaction.user.id)
+        target_time = self.parse_time(time, user_tz, interaction.created_at)
+        
+        if target_time == "timezone_not_set": return await interaction.response.send_message(t('reminder_timezone_not_set', guild_id=guild_id), ephemeral=True)
+        if target_time is None: return await interaction.response.send_message(t('reminder_error_time', guild_id=guild_id), ephemeral=True)
+        
+        reminders = self.load_reminders()
+        reminders.append({
+            'id': str(uuid.uuid4()), 'user_id': interaction.user.id, 'channel_id': interaction.channel_id,
+            'guild_id': interaction.guild_id,
+            'message': message, 'target_time': target_time, 'spam_interval': spam_interval,
+            'notified': False, 'acknowledged': False, 'last_notified': 0, 'message_id': None, 'destination': destination
+        })
+        self.save_reminders(reminders)
+        
+        success_msg = t('reminder_set_success', time=f"<t:{target_time}:F>", guild_id=guild_id)
+        if spam_interval > 0: success_msg += t('reminder_spam_on', interval=spam_interval, guild_id=guild_id)
+        await interaction.response.send_message(success_msg, ephemeral=True)
+
+    @reminder_group.command(name="list", description="List your reminders")
+    async def reminder_list(self, interaction: discord.Interaction):
+        guild_id = interaction.guild.id if interaction.guild else None
+        user_reminders = [r for r in self.load_reminders() if r['user_id'] == interaction.user.id]
+        if not user_reminders: return await interaction.response.send_message(t('reminder_list_empty', guild_id=guild_id), ephemeral=True)
+            
+        embed = discord.Embed(title=t('reminder_list_title', guild_id=guild_id), color=discord.Color.blue())
+        for idx, r in enumerate(user_reminders, 1):
+            spam_text = f" (Spam: {r['spam_interval']}m)" if r['spam_interval'] > 0 else ""
+            embed.add_field(name=f"#{idx} - <t:{r['target_time']}:R>", value=f"{r['message']}{spam_text}", inline=False)
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
+    @reminder_group.command(name="cancel", description="Cancel a reminder")
+    async def reminder_cancel(self, interaction: discord.Interaction, number: int):
+        guild_id = interaction.guild.id if interaction.guild else None
+        reminders = self.load_reminders()
+        user_reminders = [r for r in reminders if r['user_id'] == interaction.user.id]
+        if number < 1 or number > len(user_reminders): return await interaction.response.send_message(t('error', guild_id=guild_id), ephemeral=True)
+        
+        reminder_to_remove = user_reminders[number-1]
+        reminders = [r for r in reminders if r['id'] != reminder_to_remove['id']]
+        self.save_reminders(reminders)
+        await interaction.response.send_message(t('reminder_cancel_success', guild_id=guild_id), ephemeral=True)
+
+class ReminderView(discord.ui.View):
+    def __init__(self, cog, guild_id=None):
+        super().__init__(timeout=None)
+        self.cog = cog
+        self.guild_id = guild_id
+        # Localize button label
+        for child in self.children:
+            if isinstance(child, discord.ui.Button) and child.custom_id == "reminder_ack_btn":
+                child.label = t('reminder_ack_label', guild_id=guild_id)
+
+    @discord.ui.button(label="OK", style=discord.ButtonStyle.green, custom_id="reminder_ack_btn")
+    async def acknowledge(self, interaction: discord.Interaction, button: discord.ui.Button):
+        reminders = self.cog.load_reminders()
+        message_id = interaction.message.id
+        
+        # Filter out the acknowledged reminder
+        new_reminders = [r for r in reminders if r.get('message_id') != message_id]
+        
+        if len(new_reminders) < len(reminders):
+            self.cog.save_reminders(new_reminders)
+            button.disabled = True
+            button.label = t('reminder_ack_success', guild_id=interaction.guild_id)
+            await interaction.response.edit_message(view=self)
+        else:
+            await interaction.response.send_message(t('reminder_ack_error_not_found', guild_id=interaction.guild_id), ephemeral=True)
 
 
 async def setup(client):

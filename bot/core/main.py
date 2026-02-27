@@ -72,7 +72,8 @@ PATHS = {
     'auto_commands_dir': "./core/auto_commands",
     'update_logs_json': "./json/update_logs.json",
     'logs_bot': "./logs",
-    'downloads_dir': "./downloads"
+    'downloads_dir': "./downloads",
+    'reminders_json': "./json/reminders.json"
 }
 
 os.environ['PATH'] = os.path.dirname(PATHS['ffmpeg_exe']) + os.pathsep + os.path.dirname(PATHS['node_exe']) + os.pathsep + os.environ.get('PATH', '')

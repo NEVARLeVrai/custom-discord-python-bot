@@ -1,8 +1,28 @@
 {
   "_comment": "VERSIONING RULES: Bot V.DDMM.HOTFIX[TYPE]-YY | TYPE: a (Alpha) > b (Beta) > s (Stable). HOTFIX: 1.0.0 or more progressive.",
   "_comment1": "I have cleaned older versions",
-  "current_version": "Bot V.1602.3s-26",
+  "current_version": "Bot V.2702.4s-26",
   "history": [
+    {
+      "version": "Bot V.2702.4s-26",
+      "date": "27/02/2026",
+      "logs": "Code Consolidation: Merged reminder and timezone commands into 'Utility_slash.py' for better organization. Maintenance: Localized 'reset_bot.py' with dynamic language support (FR/EN) and fixed JSON initialization logic."
+    },
+    {
+      "version": "Bot V.2702.3s-26",
+      "date": "27/02/2026",
+      "logs": "Reminder System: Added per-user timezone support (/reminder timezone set) and absolute time parsing (e.g., 18:30). Confirmations now use Discord dynamic timestamps for better clarity across devices."
+    },
+    {
+      "version": "Bot V.2702.2s-26",
+      "date": "27/02/2026",
+      "logs": "Launcher UX: Added real-time download speed and progress percentage display for dependency installation (FFmpeg & Node.js). Enhanced the 'run.py' bootstrap script for better feedback during first-time setup."
+    },
+    {
+      "version": "Bot V.2702.1s-26",
+      "date": "27/02/2026",
+      "logs": "Reminder System: Added '/reminder' command for personal tasks. Features include customizable time (10m, 1h, 2d), persistent storage in JSON, optional recurring alerts (spam) until acknowledged via button, and configurable delivery (Channel or DM)."
+    },
     {
       "version": "Bot V.1602.3s-26",
       "date": "16/02/2026",
