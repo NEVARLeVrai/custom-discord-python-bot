@@ -74,7 +74,19 @@ class AudioService:
                 await voice.move_to(channel)
             return voice
         else:
-            return await channel.connect()
+            # Add a small delay for stability
+            await asyncio.sleep(0.5)
+            
+            # Retry mechanism for transient connection issues (like 4017)
+            retries = 3
+            for i in range(retries):
+                try:
+                    return await channel.connect(timeout=20, reconnect=True)
+                except Exception as e:
+                    if i == retries - 1:
+                        raise e
+                    await asyncio.sleep(1.5 * (i + 1))
+            return None
 
     async def play_audio(self, guild: discord.Guild, source_url: str, is_local: bool = False, after_cb=None, title: str = None, start_time: int = 0, duration: int = None, headers: Dict[str, str] = None, original_url: str = None):
         """Plays audio from a URL or local path."""

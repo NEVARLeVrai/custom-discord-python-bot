@@ -46,8 +46,13 @@ def get_text(key, _locale=None, guild_id=None, **kwargs):
         target_lang = DEFAULT_LANG
 
     # Try requested language, then default language, otherwise return the key
-    translations = _loaded_langs.get(target_lang) or _loaded_langs.get(DEFAULT_LANG) or {}
-    text = translations.get(key, key)
+    translations = _loaded_langs.get(target_lang) or {}
+    text = translations.get(key)
+    
+    # Fallback to default language if key is not found in the target language
+    if text is None:
+        default_translations = _loaded_langs.get(DEFAULT_LANG) or {}
+        text = default_translations.get(key, key)
 
     if kwargs:
         try:

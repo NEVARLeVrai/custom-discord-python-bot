@@ -293,10 +293,16 @@ class AudioPlayer(commands.Cog):
         outtmpl = os.path.join(downloads_dir, f'{track_id}_{timestamp}.%(ext)s')
         
         ydl_opts = self._get_ydl_opts(outtmpl=outtmpl)
+        loop = asyncio.get_event_loop()
+        
         try:
-            with YoutubeDL(ydl_opts) as ydl_down:
-                info = ydl_down.extract_info(original_url, download=True)
-                audio_path = ydl_down.prepare_filename(info)
+            # Offload blocking extraction and download to executor
+            def download():
+                with YoutubeDL(ydl_opts) as ydl_down:
+                    info = ydl_down.extract_info(original_url, download=True)
+                    return ydl_down.prepare_filename(info)
+
+            audio_path = await loop.run_in_executor(None, download)
             
             # Simple callback: just check the queue
             def voice_after(error):
@@ -306,7 +312,16 @@ class AudioPlayer(commands.Cog):
         except Exception as e:
             print(t('log_err_download', url=original_url, error=str(e)))
             # Fallback to streaming if download fails (safety net)
-            await self.audio_service.play_audio(interaction.guild, url, after_cb=lambda e: self.check_queue(interaction), title=title, duration=duration, headers=headers, original_url=original_url)
+            def stream_download():
+                with YoutubeDL(ydl_opts) as ydl_down:
+                    return ydl_down.extract_info(url, download=False)
+            
+            try:
+                # Even fallback extraction should be in executor
+                await loop.run_in_executor(None, stream_download)
+                await self.audio_service.play_audio(interaction.guild, url, after_cb=lambda e: self.check_queue(interaction), title=title, duration=duration, headers=headers, original_url=original_url)
+            except Exception as e2:
+                print(f"Fallback extraction failed: {e2}")
 
     def __init__(self, client):
         self.client = client

@@ -1,4 +1,5 @@
-discord.py
+discord.py[voice]
+dave
 yt-dlp[default]
 curl-cffi
 yt-dlp-ejs

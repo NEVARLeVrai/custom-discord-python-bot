@@ -1,8 +1,13 @@
 {
   "_comment": "VERSIONING RULES: Bot V.DDMM.HOTFIX[TYPE]-YY | TYPE: a (Alpha) > b (Beta) > s (Stable). HOTFIX: 1.0.0 or more progressive.",
   "_comment1": "I have cleaned older versions",
-  "current_version": "Bot V.2702.6s-26",
+  "current_version": "Bot V.0403.1s-26",
   "history": [
+    {
+      "version": "Bot V.0403.1s-26",
+      "date": "04/03/2026",
+      "logs": "Core Fixes & Infrastructure Update: Fixed localization fallback logic. Resolved a critical bug in the reminder system. Enhanced voice stability with an executor-based retry mechanism. CRITICAL: Added 'dave' library and updated discord.py[voice] to support Discord's new E2EE voice protocol. Run 'run.bat' to update dependencies."
+    },
     {
       "version": "Bot V.2702.3s-26",
       "date": "27/02/2026",

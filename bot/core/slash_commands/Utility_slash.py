@@ -540,15 +540,20 @@ class Utility_slash(commands.Cog):
                         destination_type = reminder.get('destination', 'channel')
                         msg = None
                         
+                        target_channel = self.client.get_channel(reminder['channel_id'])
+                        if not target_channel and reminder.get('channel_id'):
+                            try:
+                                target_channel = await self.client.fetch_channel(reminder['channel_id'])
+                            except:
+                                pass
+
                         if destination_type == 'dm':
                             try: msg = await user.send(embed=embed, view=view)
                             except:
-                                channel = self.client.get_channel(reminder['channel_id'])
-                                if channel: msg = await channel.send(content=user.mention, embed=embed, view=view)
+                                if target_channel: msg = await target_channel.send(content=user.mention, embed=embed, view=view)
                         else:
-                            channel = self.client.get_channel(reminder['channel_id'])
-                            if channel:
-                                try: msg = await channel.send(content=user.mention, embed=embed, view=view)
+                            if target_channel:
+                                try: msg = await target_channel.send(content=user.mention, embed=embed, view=view)
                                 except:
                                     try: msg = await user.send(embed=embed, view=view)
                                     except: pass
@@ -556,10 +561,11 @@ class Utility_slash(commands.Cog):
                                 try: msg = await user.send(embed=embed, view=view)
                                 except: pass
                         
-                        if msg: reminder['message_id'] = msg.id
-                        reminder['notified'] = True
-                        reminder['last_notified'] = now
-                        updated = True
+                        if msg:
+                            reminder['message_id'] = msg.id
+                            reminder['notified'] = True
+                            reminder['last_notified'] = now
+                            updated = True
                 
                 if reminder.get('acknowledged', False) or (reminder.get('notified', False) and spam_interval <= 0):
                     reminders.remove(reminder)
