@@ -170,7 +170,7 @@ Powered by [yt-dlp](https://github.com/yt-dlp/yt-dlp).
 
 ### 🔗 Link Conversion (VxT-Python Port)
 
-Full-fidelity port of **VxT-Python** (conversion of social media links for better embeds).
+Full-fidelity port of **[VxT-Python](https://github.com/Aris-In-Vain/VxT-Python)** (conversion of social media links for better embeds).
 
 - **Zero configuration needed** – Automatically converts links from X (Twitter), Instagram, TikTok, and more.
 - **Unbundled Commands** – All 14 configuration modules are available as top-level `vxt-` commands.
