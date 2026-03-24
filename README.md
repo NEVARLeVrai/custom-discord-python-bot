@@ -9,12 +9,12 @@ A complete **Discord bot** with numerous features, developed in **Python** using
 - [Features](#-features)
 - [Installation](#-installation)
 - [How to Launch](#-how-to-launch)
-- [Configuration](#️-configuration)
+- [Configuration](#-configuration)
 - [Project Structure](#-project-structure)
 - [Slash Commands](#-slash-commands)
-- [Error Handling](#️-error-handling)
+- [Error Handling](#-error-handling)
 - [Notes](#-notes)
-- [Warnings](#️-warnings)
+- [Warnings](#-warnings)
 - [Bug Reporting](#-bug-reporting)
 
 ---
@@ -79,7 +79,7 @@ A complete **Discord bot** with numerous features, developed in **Python** using
 
 - **`/gpt [question]`** – Ask GPT a question
 - **`/dalle [prompt]`** – Generate an image using DALL·E
-- **`/repeat [#channel or @user] [message]`** – Repeat a message
+- **`/say [#channel] [message]`** – Send a message in a channel
 - **`/8ball [question]`** – Ask the magic 8-ball
 - **`/hilaire`** – Hilaire game
 - **`/deldms`** – Delete all bot DMs _(admin only)_
@@ -107,7 +107,6 @@ Personal reminder system with timezone awareness.
 > The bot automatically joins the user's voice channel and stays connected for other audio features.
 
 ---
-
 
 ### 🎵 Soundboard
 
@@ -170,16 +169,31 @@ Powered by [yt-dlp](https://github.com/yt-dlp/yt-dlp).
 ---
 
 ### 🔗 Link Conversion (VxT-Python Port)
- 
- Full-fidelity port of **VxT-Python** (conversion of social media links for better embeds).
- 
- - **Zero configuration needed** – Automatically converts links from X (Twitter), Instagram, TikTok, and more.
- - **Unbundled Commands** – All 14 configuration modules are available as top-level `vxt-` commands.
- - **`/vxt-toggle`** – Enable/disable specific conversion types.
- - **`/vxt-direct-media`** – Configure specialized media behavior (per-channel, multi-image, etc.).
- - **`/vxt-translate`** – Set target language for tweet translations with autocomplete.
- - **`/vxt-blacklist`** – Exclude specific users or roles.
- - **`/vxt-conversion-list`** – Manage custom domain mappings.
+
+Full-fidelity port of **VxT-Python** (conversion of social media links for better embeds).
+
+- **Zero configuration needed** – Automatically converts links from X (Twitter), Instagram, TikTok, and more.
+- **Unbundled Commands** – All 14 configuration modules are available as top-level `vxt-` commands.
+- **`/vxt-toggle [type]`** – Toggle conversion for all, text, images, videos, or polls.
+- **`/vxt-direct-media toggle [type]`** – Toggle subdomain addition for Twitter images/videos.
+- **`/vxt-direct-media channel [action] [channel]`** – Manage allowed/prohibited channels.
+- **`/vxt-direct-media multiple-images [option]`** – Configure mosaic or conversion for multi-images.
+- **`/vxt-direct-media quote-tweet [option]`** – Configure quote tweet behavior in direct media.
+- **`/vxt-translate toggle`** – Enable/disable tweet translation.
+- **`/vxt-translate language [language]`** – Set target language with autocomplete.
+- **`/vxt-blacklist [action] [user/role]`** – Manage blacklisted users and roles.
+- **`/vxt-mention remove [action] [mention]`** – Manage mentions to ignore.
+- **`/vxt-mention remove-all [groups]`** – Toggle removal for all, roles, or users mentions.
+- **`/vxt-conversion-list add/update/remove/list`** – Manage custom domain conversions.
+- **`/vxt-quote-tweet link-conversion [type]`** – Toggle specific quote tweet link conversion details.
+- **`/vxt-quote-tweet remove-quoted-tweet`** – Toggle removal of original quoted tweets.
+- **`/vxt-message [delete_original] [other_webhooks]`** – Configure webhook and deletion behavior.
+- **`/vxt-retweet [delete_original]`** – Toggle original deletion for retweets.
+- **`/vxt-webhooks [preference] [reply]`** – Set preference between webhooks and replies.
+- **`/vxt-delete-bot-message [toggle] [count]`** – Configure bot message deletion via reactions.
+- **`/vxt-name-preference [preference]`** – Choose between display name and username for webhooks.
+- **`/vxt-reset-settings`** – Reset all VxT settings to default for the server.
+- **`/vxt-error-list`** – List recent conversion errors.
  
  _Uses webhooks to seamlessly replace messages while maintaining user identity._
  
@@ -208,8 +222,8 @@ Powered by [yt-dlp](https://github.com/yt-dlp/yt-dlp).
 
 1.  **Prerequisites**: Have [Python 3.8+](https://www.python.org/downloads/) installed.
 2.  **Launch the bot**:
-    - Double-click on `run.bat` (Windows).
-    - Or run `./run.sh` (Linux/Mac).
+- Double-click on `run.bat` (Windows).
+- Or run `./run.sh` (Linux/Mac).
 
 ✨ **Magic**: On first launch, the bot will **automatically**:
 

@@ -6,6 +6,7 @@ import re
 import langcodes
 import pycountry
 from services.vxt_service import vxt_service_global as vxt_service
+from lang.lang_utils import t
 
 # Domain pattern for conversion-list
 domain_pattern = r"^[a-zA-Z0-9-]+\.[a-zA-Z]{2,}$"
@@ -35,8 +36,9 @@ class VxT_slash(commands.Cog):
             temp_toggle_list[interaction.guild_id][type] = not temp_toggle_list[interaction.guild_id][type]
         
         await vxt_service.write_file_content("toggle-list", temp_toggle_list)
-        status = "on" if temp_toggle_list[interaction.guild_id][type] else "off"
-        await interaction.response.send_message(f"Toggled {type} link conversions {status}.")
+        status = t('vxt_status_on', guild_id=interaction.guild_id) if temp_toggle_list[interaction.guild_id][type] else t('vxt_status_off', guild_id=interaction.guild_id)
+        tr_type = t(f'vxt_val_{type}', guild_id=interaction.guild_id)
+        await interaction.response.send_message(t('vxt_toggle_success', type=tr_type, status=status, guild_id=interaction.guild_id))
 
     # --- Direct-Media Commands ---
     @vxt_direct_media.command(name="toggle", description="Toggle subdomain addition for Twitter links.")
@@ -46,8 +48,9 @@ class VxT_slash(commands.Cog):
         temp_dm_list = vxt_service.read_file_content("direct-media-list", {interaction.guild_id: vxt_service.default_settings["direct-media-list"]})
         temp_dm_list[interaction.guild_id]["toggle"][type] = not temp_dm_list[interaction.guild_id]["toggle"][type]
         await vxt_service.write_file_content("direct-media-list", temp_dm_list)
-        status = "on" if temp_dm_list[interaction.guild_id]["toggle"][type] else "off"
-        await interaction.response.send_message(f"Toggled direct media conversion of tweets containing {type} {status}.")
+        status = t('vxt_status_on', guild_id=interaction.guild_id) if temp_dm_list[interaction.guild_id]["toggle"][type] else t('vxt_status_off', guild_id=interaction.guild_id)
+        tr_type = t(f'vxt_val_{type}', guild_id=interaction.guild_id)
+        await interaction.response.send_message(t('vxt_dm_toggle_success', type=tr_type, status=status, guild_id=interaction.guild_id))
 
     @vxt_direct_media.command(name="channel", description="Change permissions for which channels to convert in.")
     @app_commands.describe(action="The action to be performed.", channel="The channel to allow or prohibit.")
@@ -57,19 +60,20 @@ class VxT_slash(commands.Cog):
         if action == "list":
             chnl_list = temp_dm_list[interaction.guild_id]["channel"]
             if "allow" in chnl_list or "prohibit" in chnl_list:
-                state = "allowed" if "allow" in chnl_list else "prohibited"
-                return await interaction.response.send_message(f"All channels are {state}.")
+                state = t('vxt_status_allowed', guild_id=interaction.guild_id) if "allow" in chnl_list else t('vxt_status_prohibited', guild_id=interaction.guild_id)
+                return await interaction.response.send_message(t('vxt_dm_channels_all', state=state, guild_id=interaction.guild_id))
             
             allowed = "\n".join([f"- {c[1]}" for c in chnl_list if isinstance(c, list) and c[0] == "allow"])
             prohibited = "\n".join([f"- {c[1]}" for c in chnl_list if isinstance(c, list) and c[0] == "prohibit"])
-            await interaction.response.send_message(f"Allowed channels:\n{allowed}\nProhibited:\n{prohibited}")
+            await interaction.response.send_message(t('vxt_dm_channels_list', allowed=allowed, prohibited=prohibited, guild_id=interaction.guild_id))
         
         elif action in ["allow", "prohibit"]:
-            if not channel: return await interaction.response.send_message("Please select a channel.")
+            if not channel: return await interaction.response.send_message(t('vxt_error_select_channel', guild_id=interaction.guild_id))
             entry = [action, channel.mention]
             chnl_list = temp_dm_list[interaction.guild_id]["channel"]
             if entry in chnl_list or action in chnl_list:
-                return await interaction.response.send_message(f"Channel {channel.mention} is already {action}ed.")
+                tr_action = t(f'vxt_val_{action}', guild_id=interaction.guild_id)
+                return await interaction.response.send_message(t('vxt_dm_channel_already', channel=channel.mention, action=tr_action, guild_id=interaction.guild_id))
             
             opp = "prohibit" if action == "allow" else "allow"
             chnl_list = [item for item in chnl_list if item != [opp, channel.mention]]
@@ -77,13 +81,14 @@ class VxT_slash(commands.Cog):
             chnl_list.append(entry)
             temp_dm_list[interaction.guild_id]["channel"] = chnl_list
             await vxt_service.write_file_content("direct-media-list", temp_dm_list)
-            await interaction.response.send_message(f"Channel {channel.mention} is now {action}ed.")
+            tr_action = t(f'vxt_val_{action}', guild_id=interaction.guild_id)
+            await interaction.response.send_message(t('vxt_dm_channel_success', channel=channel.mention, action=tr_action, guild_id=interaction.guild_id))
         
         elif action in ["allow all", "prohibit all"]:
-            key = "allow" if action == "allow all" else "prohibit"
-            temp_dm_list[interaction.guild_id]["channel"] = [key]
+            key = t('vxt_status_allowed', guild_id=interaction.guild_id) if action == "allow all" else t('vxt_status_prohibited', guild_id=interaction.guild_id)
+            temp_dm_list[interaction.guild_id]["channel"] = ["allow" if action == "allow all" else "prohibit"]
             await vxt_service.write_file_content("direct-media-list", temp_dm_list)
-            await interaction.response.send_message(f"All channels are now {key}ed.")
+            await interaction.response.send_message(t('vxt_dm_channels_all_success', key=key, guild_id=interaction.guild_id))
 
     @vxt_direct_media.command(name="multiple-images", description="Configure behavior for multiple images.")
     @app_commands.describe(option="Select an option.")
@@ -93,8 +98,9 @@ class VxT_slash(commands.Cog):
         temp_dm_list = vxt_service.read_file_content("direct-media-list", {interaction.guild_id: vxt_service.default_settings["direct-media-list"]})
         temp_dm_list[interaction.guild_id]["multiple_images"][option.value] = not temp_dm_list[interaction.guild_id]["multiple_images"][option.value]
         await vxt_service.write_file_content("direct-media-list", temp_dm_list)
-        status = "on" if temp_dm_list[interaction.guild_id]["multiple_images"][option.value] else "off"
-        await interaction.response.send_message(f"Multiple images {option.name} is now {status}.")
+        status = t('vxt_status_on', guild_id=interaction.guild_id) if temp_dm_list[interaction.guild_id]["multiple_images"][option.value] else t('vxt_status_off', guild_id=interaction.guild_id)
+        tr_option = t(f'vxt_val_{option.value}', guild_id=interaction.guild_id)
+        await interaction.response.send_message(t('vxt_dm_multi_image_success', option=tr_option, status=status, guild_id=interaction.guild_id))
 
     @vxt_direct_media.command(name="quote-tweet", description="Configure behavior for quote tweets in direct media.")
     @app_commands.describe(option="Select an option.")
@@ -104,8 +110,9 @@ class VxT_slash(commands.Cog):
         temp_dm_list = vxt_service.read_file_content("direct-media-list", {interaction.guild_id: vxt_service.default_settings["direct-media-list"]})
         temp_dm_list[interaction.guild_id]["quote_tweet"][option.value] = not temp_dm_list[interaction.guild_id]["quote_tweet"][option.value]
         await vxt_service.write_file_content("direct-media-list", temp_dm_list)
-        status = "on" if temp_dm_list[interaction.guild_id]["quote_tweet"][option.value] else "off"
-        await interaction.response.send_message(f"Direct media quote tweet {option.name} is now {status}.")
+        status = t('vxt_status_on', guild_id=interaction.guild_id) if temp_dm_list[interaction.guild_id]["quote_tweet"][option.value] else t('vxt_status_off', guild_id=interaction.guild_id)
+        tr_option = t(f'vxt_val_{option.value}', guild_id=interaction.guild_id)
+        await interaction.response.send_message(t('vxt_dm_quote_success', option=tr_option, status=status, guild_id=interaction.guild_id))
 
     # --- Translate Commands ---
     async def lang_autocomplete(self, interaction: discord.Interaction, current: str) -> list[app_commands.Choice[str]]:
@@ -118,7 +125,8 @@ class VxT_slash(commands.Cog):
         temp = vxt_service.read_file_content("translate-list", {interaction.guild_id: vxt_service.default_settings["translate-list"]})
         temp[interaction.guild_id]["toggle"] = not temp[interaction.guild_id]["toggle"]
         await vxt_service.write_file_content("translate-list", temp)
-        await interaction.response.send_message(f"Translation is now {'on' if temp[interaction.guild_id]['toggle'] else 'off'}.")
+        status = t('vxt_status_on', guild_id=interaction.guild_id) if temp[interaction.guild_id]['toggle'] else t('vxt_status_off', guild_id=interaction.guild_id)
+        await interaction.response.send_message(t('vxt_translate_toggle_success', status=status, guild_id=interaction.guild_id))
 
     @vxt_translate.command(name="language", description="Change target language.")
     @app_commands.describe(language="ISO code or full name.")
@@ -128,12 +136,12 @@ class VxT_slash(commands.Cog):
         await interaction.response.defer()
         lang_map = {i.name: i.alpha_2 for i in list(pycountry.languages) if hasattr(i, "alpha_2")}
         if language not in lang_map:
-            return await interaction.edit_original_response(content="Please select a language from the options.")
+            return await interaction.edit_original_response(content=t('vxt_translate_lang_error', guild_id=interaction.guild_id))
         
         temp = vxt_service.read_file_content("translate-list", {interaction.guild_id: vxt_service.default_settings["translate-list"]})
         temp[interaction.guild_id]["language"] = lang_map[language]
         await vxt_service.write_file_content("translate-list", temp)
-        await interaction.edit_original_response(content=f"Translation language set to {language}.")
+        await interaction.edit_original_response(content=t('vxt_translate_lang_success', language=language, guild_id=interaction.guild_id))
 
     # --- Blacklist Command ---
     @app_commands.command(name="vxt-blacklist", description="Blacklist users or roles from conversions.")
@@ -147,18 +155,18 @@ class VxT_slash(commands.Cog):
         if action == "add":
             if user: u_set.add(user.id)
             if role: r_set.add(role.id)
-            msg = f"Added to blacklist."
+            msg = t('vxt_blacklist_add_success', guild_id=interaction.guild_id)
         elif action == "remove":
             if user and user.id in u_set: u_set.remove(user.id)
             if role and role.id in r_set: r_set.remove(role.id)
-            msg = f"Removed from blacklist."
+            msg = t('vxt_blacklist_remove_success', guild_id=interaction.guild_id)
         elif action == "list":
             u_str = "\n".join([f"- <@{i}>" for i in u_set])
             r_str = "\n".join([f"- <@&{i}>" for i in r_set])
-            return await interaction.response.send_message(f"Users:\n{u_str}\nRoles:\n{r_str}")
+            return await interaction.response.send_message(t('vxt_blacklist_list', u_str=u_str, r_str=r_str, guild_id=interaction.guild_id))
         elif action == "clear":
             u_set.clear(); r_set.clear()
-            msg = "Blacklist cleared."
+            msg = t('vxt_blacklist_clear_success', guild_id=interaction.guild_id)
         
         temp[interaction.guild_id]["users"] = list(u_set)
         temp[interaction.guild_id]["roles"] = list(r_set)
@@ -177,13 +185,13 @@ class VxT_slash(commands.Cog):
         elif action == "remove" and mention and mention.mention in m_set: m_set.remove(mention.mention)
         elif action == "list":
             listing = "\n".join([f"- {i}" for i in m_set])
-            return await interaction.response.send_message(f"Ignored mentions:\n{listing}")
+            return await interaction.response.send_message(t('vxt_mentions_list', listing=listing, guild_id=interaction.guild_id))
         elif action == "clear":
             m_set.clear()
         
         temp[interaction.guild_id] = list(m_set)
         await vxt_service.write_file_content("mention-remove-list", temp)
-        await interaction.response.send_message(f"Mention list updated.")
+        await interaction.response.send_message(t('vxt_mentions_updated', guild_id=interaction.guild_id))
 
     @vxt_mention.command(name="remove-all", description="Toggle all, roles or users mentions removal.")
     @app_commands.describe(groups="Target group.")
@@ -195,7 +203,8 @@ class VxT_slash(commands.Cog):
         else: m_set.add(groups)
         temp[interaction.guild_id] = list(m_set)
         await vxt_service.write_file_content("mention-remove-list", temp)
-        await interaction.response.send_message(f"Toggled removal of {groups}.")
+        tr_groups = t(f'vxt_val_{groups}', guild_id=interaction.guild_id)
+        await interaction.response.send_message(t('vxt_mentions_toggle_success', groups=tr_groups, guild_id=interaction.guild_id))
 
     # --- Conversion-List Commands ---
     async def conv_autocomplete(self, interaction: discord.Interaction, current: str) -> list[app_commands.Choice[str]]:
@@ -207,11 +216,11 @@ class VxT_slash(commands.Cog):
     @app_commands.checks.has_permissions(manage_guild=True)
     async def conv_add(self, interaction: discord.Interaction, original: str, converted: str):
         if not re.match(domain_pattern, original) or not re.match(domain_pattern, converted):
-            return await interaction.response.send_message("Please use 'domain.com' format.")
+            return await interaction.response.send_message(t('vxt_conv_format_error', guild_id=interaction.guild_id))
         temp = vxt_service.read_file_content("conversion-list", {interaction.guild_id: vxt_service.default_settings["conversion-list"]})
         temp[interaction.guild_id][original] = converted
         await vxt_service.write_file_content("conversion-list", temp)
-        await interaction.response.send_message(f"Added conversion: {original} -> {converted}")
+        await interaction.response.send_message(t('vxt_conv_add_success', original=original, converted=converted, guild_id=interaction.guild_id))
 
     @vxt_conversion.command(name="update", description="Update a domain conversion.")
     @app_commands.autocomplete(original=conv_autocomplete)
@@ -221,9 +230,9 @@ class VxT_slash(commands.Cog):
         if original in temp[interaction.guild_id]:
             temp[interaction.guild_id][original] = updated
             await vxt_service.write_file_content("conversion-list", temp)
-            await interaction.response.send_message(f"Updated {original} to {updated}.")
+            await interaction.response.send_message(t('vxt_conv_update_success', original=original, updated=updated, guild_id=interaction.guild_id))
         else:
-            await interaction.response.send_message("Domain not found.")
+            await interaction.response.send_message(t('vxt_error_domain_not_found', guild_id=interaction.guild_id))
 
     @vxt_conversion.command(name="remove", description="Remove a domain conversion.")
     @app_commands.autocomplete(original=conv_autocomplete)
@@ -233,16 +242,16 @@ class VxT_slash(commands.Cog):
         if original in temp[interaction.guild_id]:
             del temp[interaction.guild_id][original]
             await vxt_service.write_file_content("conversion-list", temp)
-            await interaction.response.send_message(f"Removed {original}.")
+            await interaction.response.send_message(t('vxt_conv_remove_success', original=original, guild_id=interaction.guild_id))
         else:
-            await interaction.response.send_message("Domain not found.")
+            await interaction.response.send_message(t('vxt_error_domain_not_found', guild_id=interaction.guild_id))
 
     @vxt_conversion.command(name="list", description="List all domain conversions.")
     @app_commands.checks.has_permissions(manage_guild=True)
     async def conv_list(self, interaction: discord.Interaction):
         temp = vxt_service.read_file_content("conversion-list", {interaction.guild_id: vxt_service.default_settings["conversion-list"]})
         listing = "\n".join([f"- {k} : {v}" for k, v in temp[interaction.guild_id].items()])
-        await interaction.response.send_message(f"Conversions:\n{listing}")
+        await interaction.response.send_message(t('vxt_conv_list', listing=listing, guild_id=interaction.guild_id))
 
     # --- Quote-Tweet Commands ---
     @vxt_quote_tweet.command(name="link-conversion", description="Toggle quote tweet link conversion details.")
@@ -257,7 +266,8 @@ class VxT_slash(commands.Cog):
         else:
             temp[interaction.guild_id]["link_conversion"][type] = not temp[interaction.guild_id]["link_conversion"][type]
         await vxt_service.write_file_content("quote-tweet-list", temp)
-        await interaction.response.send_message(f"Toggled {type} for quote tweets.")
+        tr_type = t(f'vxt_val_{type}', guild_id=interaction.guild_id)
+        await interaction.response.send_message(t('vxt_quote_toggle_success', type=tr_type, guild_id=interaction.guild_id))
 
     @vxt_quote_tweet.command(name="remove-quoted-tweet", description="Toggle removal of the original quoted tweet.")
     @app_commands.checks.has_permissions(manage_guild=True)
@@ -265,7 +275,8 @@ class VxT_slash(commands.Cog):
         temp = vxt_service.read_file_content("quote-tweet-list", {interaction.guild_id: vxt_service.default_settings["quote-tweet-list"]})
         temp[interaction.guild_id]["remove quoted tweet"] = not temp[interaction.guild_id]["remove quoted tweet"]
         await vxt_service.write_file_content("quote-tweet-list", temp)
-        await interaction.response.send_message(f"Quoted tweet removal toggled {'on' if temp[interaction.guild_id]['remove quoted tweet'] else 'off'}.")
+        status = t('vxt_status_on', guild_id=interaction.guild_id) if temp[interaction.guild_id]['remove quoted tweet'] else t('vxt_status_off', guild_id=interaction.guild_id)
+        await interaction.response.send_message(t('vxt_quote_remove_toggle_success', status=status, guild_id=interaction.guild_id))
 
     # --- Other Top-Level Commands ---
     @app_commands.command(name="vxt-message", description="Configure message deletion and webhook behavior.")
@@ -275,7 +286,7 @@ class VxT_slash(commands.Cog):
         if delete_original is not None: temp[interaction.guild_id]["delete_original"] = delete_original
         if other_webhooks is not None: temp[interaction.guild_id]["other_webhooks"] = other_webhooks
         await vxt_service.write_file_content("message-list", temp)
-        await interaction.response.send_message("Message configuration updated.")
+        await interaction.response.send_message(t('vxt_message_updated', guild_id=interaction.guild_id))
 
     @app_commands.command(name="vxt-retweet", description="Toggle original deletion for retweets.")
     @app_commands.checks.has_permissions(manage_guild=True)
@@ -283,7 +294,8 @@ class VxT_slash(commands.Cog):
         temp = vxt_service.read_file_content("retweet-list", {interaction.guild_id: vxt_service.default_settings["retweet-list"]})
         temp[interaction.guild_id]["delete_original_tweet"] = delete_original
         await vxt_service.write_file_content("retweet-list", temp)
-        await interaction.response.send_message(f"Retweet original deletion set to {delete_original}.")
+        status = t('vxt_status_on', guild_id=interaction.guild_id) if delete_original else t('vxt_status_off', guild_id=interaction.guild_id)
+        await interaction.response.send_message(t('vxt_retweet_success', status=status, guild_id=interaction.guild_id))
 
     @app_commands.command(name="vxt-webhooks", description="Configure webhook vs reply preference.")
     @app_commands.checks.has_permissions(manage_guild=True)
@@ -292,7 +304,7 @@ class VxT_slash(commands.Cog):
         temp[interaction.guild_id]["preference"] = preference
         temp[interaction.guild_id]["reply"] = reply
         await vxt_service.write_file_content("webhook-list", temp)
-        await interaction.response.send_message("Webhook/Reply preferences updated.")
+        await interaction.response.send_message(t('vxt_webhook_updated', guild_id=interaction.guild_id))
 
     @app_commands.command(name="vxt-delete-bot-message", description="Configure bot message deletion via reactions.")
     @app_commands.checks.has_permissions(manage_guild=True)
@@ -301,7 +313,7 @@ class VxT_slash(commands.Cog):
         temp[interaction.guild_id]["toggle"] = toggle
         temp[interaction.guild_id]["number"] = reaction_count
         await vxt_service.write_file_content("delete-bot-message-list", temp)
-        await interaction.response.send_message(f"Bot message deletion configured (Toggle: {toggle}, Count: {reaction_count}).")
+        await interaction.response.send_message(t('vxt_bot_del_success', toggle=toggle, count=reaction_count, guild_id=interaction.guild_id))
 
     @app_commands.command(name="vxt-name-preference", description="Configure display name vs username preference.")
     @app_commands.checks.has_permissions(manage_guild=True)
@@ -309,7 +321,8 @@ class VxT_slash(commands.Cog):
         temp = vxt_service.read_file_content("name-preference-list", {interaction.guild_id: vxt_service.default_settings["name-preference-list"]})
         temp[interaction.guild_id] = preference
         await vxt_service.write_file_content("name-preference-list", temp)
-        await interaction.response.send_message(f"Name preference set to {preference}.")
+        tr_preference = t(f'vxt_val_{preference.replace(" ", "_")}', guild_id=interaction.guild_id)
+        await interaction.response.send_message(t('vxt_name_pref_success', preference=tr_preference, guild_id=interaction.guild_id))
 
     @app_commands.command(name="vxt-reset-settings", description="Reset all VxT settings to default.")
     @app_commands.checks.has_permissions(manage_guild=True)
@@ -318,12 +331,12 @@ class VxT_slash(commands.Cog):
             temp = vxt_service.read_file_content(key, {})
             temp[interaction.guild_id] = vxt_service.default_settings[key]
             await vxt_service.write_file_content(key, temp)
-        await interaction.response.send_message("All VxT settings have been reset to default for this server.")
+        await interaction.response.send_message(t('vxt_reset_success', guild_id=interaction.guild_id))
 
     @app_commands.command(name="vxt-error-list", description="List recent conversion errors.")
     @app_commands.checks.has_permissions(manage_guild=True)
     async def vxt_err_list(self, interaction: discord.Interaction):
-        await interaction.response.send_message("No recent errors logged.")
+        await interaction.response.send_message(t('vxt_error_none_logged', guild_id=interaction.guild_id))
 
 async def setup(bot):
     await bot.add_cog(VxT_slash(bot))

@@ -47,6 +47,18 @@ def get_used_keys():
                 if 'hilaire_res_' in content:
                     for i in range(1, 15): # Accommodate potential expansion
                         used_keys.add(f'hilaire_res_{i}')
+                
+                # VxT Parameter Values (dynamic keys)
+                if 'VxT_slash.py' in filepath:
+                    vxt_vals = [
+                        "all", "text", "images", "videos", "polls",
+                        "list", "allow", "prohibit", "allow_all", "prohibit_all",
+                        "convert", "replace_with_mosaic", "prefer_quoted_tweet",
+                        "roles", "users", "follow_tweets",
+                        "display_name", "username", "webhooks", "replies"
+                    ]
+                    for val in vxt_vals:
+                        used_keys.add(f'vxt_val_{val}')
     return used_keys
 
 def clean_and_sort():
