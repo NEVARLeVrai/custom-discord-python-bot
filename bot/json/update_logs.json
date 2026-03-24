@@ -1,8 +1,13 @@
 {
   "_comment": "VERSIONING RULES: Bot V.DDMM.HOTFIX[TYPE]-YY | TYPE: a (Alpha) > b (Beta) > s (Stable). HOTFIX: 1.0.0 or more progressive.",
   "_comment1": "I have cleaned older versions",
-  "current_version": "Bot V.0403.1s-26",
+  "current_version": "Bot V.2403.1s-26",
   "history": [
+    {
+      "version": "Bot V.2403.1s-26",
+      "date": "24/03/2026",
+      "logs": "VxT Integration (Full-Fidelity): Ported absolute 100% of the original VxT-Python features (14 command files). Unbundled from a single /vxt group into 14 top-level 'vxt-' prefixed entries (vxt-toggle, vxt-direct-media, etc.) for better visibility. Features include advanced autocomplete for languages/domains, per-channel configuration, and automatic link conversion logic for Twitter/X, Instagram, and TikTok. Updated 'reset_bot.py' to handle new configuration data."
+    },
     {
       "version": "Bot V.0403.1s-26",
       "date": "04/03/2026",

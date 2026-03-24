@@ -27,6 +27,7 @@ REQUIRED_DIRS = [
     os.path.join(bot_root, "bin"),
     os.path.join(bot_root, "logs"),
     os.path.join(bot_root, "json"),
+    os.path.join(bot_root, "json", "vxt_lists"),
     os.path.join(bot_root, "lang"),
     os.path.join(bot_root, "downloads"),
     os.path.join(bot_root, "img"),
@@ -45,6 +46,14 @@ DATA_FILES = [
     os.path.join(bot_root, "json", "user_timezones.json"),
     os.path.join(bot_root, "lang", "config.json")
 ]
+
+# VxT Data files
+VXT_DIR = os.path.join(bot_root, "json", "vxt_lists")
+VXT_FILES = []
+if os.path.exists(VXT_DIR):
+    for f in os.listdir(VXT_DIR):
+        if f.endswith(".json"):
+            VXT_FILES.append(os.path.join(VXT_DIR, f))
 
 # Path to log files
 LOG_FILES = [
@@ -136,10 +145,11 @@ def main():
 
     # 2. Reset Data Files
     print("\n" + t('reset_data_title'))
-    for file_path in DATA_FILES:
+    for file_path in DATA_FILES + VXT_FILES:
         if os.path.exists(file_path):
-            safe_remove(file_path)
-        reset_json_file(file_path)
+            # We don't use safe_remove here to avoid "Removing..." messages for files
+            # Instead we just "empty" them via reset_json_file
+            reset_json_file(file_path)
 
     # 3. Reset Logs
     print("\n" + t('reset_logs_title'))

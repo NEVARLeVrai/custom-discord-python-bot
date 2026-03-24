@@ -19,3 +19,6 @@ numpy
 pylance
 yarl
 aiohttp
+langcodes
+pycountry
+aiomysql

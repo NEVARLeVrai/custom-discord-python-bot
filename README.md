@@ -108,17 +108,6 @@ Personal reminder system with timezone awareness.
 
 ---
 
-### 🔗 Automatic Link Conversion
-
-Automatically converts social-media links for cleaner Discord embeds:
-
-- **Instagram** → `eeinstagram.com`
-- **Twitter/X** → `fxtwitter.com`
-- **Reddit** → `vxreddit.com` (expands short links like `redd.it`)
-
-Original messages are deleted and replaced with the optimized link.
-
----
 
 ### 🎵 Soundboard
 
@@ -180,7 +169,23 @@ Powered by [yt-dlp](https://github.com/yt-dlp/yt-dlp).
 
 ---
 
-### 🧬 Leveling System
+### 🔗 Link Conversion (VxT-Python Port)
+ 
+ Full-fidelity port of **VxT-Python** (conversion of social media links for better embeds).
+ 
+ - **Zero configuration needed** – Automatically converts links from X (Twitter), Instagram, TikTok, and more.
+ - **Unbundled Commands** – All 14 configuration modules are available as top-level `vxt-` commands.
+ - **`/vxt-toggle`** – Enable/disable specific conversion types.
+ - **`/vxt-direct-media`** – Configure specialized media behavior (per-channel, multi-image, etc.).
+ - **`/vxt-translate`** – Set target language for tweet translations with autocomplete.
+ - **`/vxt-blacklist`** – Exclude specific users or roles.
+ - **`/vxt-conversion-list`** – Manage custom domain mappings.
+ 
+ _Uses webhooks to seamlessly replace messages while maintaining user identity._
+ 
+ ---
+ 
+ ### 🧬 Leveling System
 
 - **`/level [@user]`** – View level
 - **`/resetlevel`** – Reset all levels _(admin only)_
@@ -389,3 +394,11 @@ A ticket is automatically sent to the developer via webhook.
 ---
 
 **Developed with ❤️ in Python by [NEVAR](https://github.com/NEVARLeVrai)**
+
+---
+
+### 📜 Credits & Acknowledgements
+
+- **VxT-Python**: Special thanks to **[Aris-In-Vain](https://github.com/Aris-In-Vain/VxT-Python)** for the original Link Conversion logic and configuration structure.
+- **Link Services**: Powered by [FixTweet](https://github.com/dangeredwolf/FixTweet) (dangeredwolf), [InstaFix](https://github.com/Wikidepia/InstaFix) (Wikidepia), and others.
+- **Tools**: Powered by [discord.py](https://github.com/Rapptz/discord.py) and [yt-dlp](https://github.com/yt-dlp/yt-dlp).
