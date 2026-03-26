@@ -15,11 +15,15 @@ def clean_url(raw: str) -> str:
 
 async def fetch_fxtwitter(status_id: str, session: aiohttp.ClientSession) -> dict | None:
     api_url = f"https://api.fxtwitter.com/status/{status_id}"
-    headers = {"User-Agent": "VxT"}
-    async with session.get(api_url, headers=headers) as resp:
-        if resp.status == 200:
-            data = await resp.json()
-            return data["tweet"]
+    # Use a more standard User-Agent to avoid being blocked
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"}
+    try:
+        async with session.get(api_url, headers=headers, timeout=5) as resp:
+            if resp.status == 200:
+                data = await resp.json()
+                return data["tweet"]
+    except:
+        pass
     return None
 
 async def safe_fetch_webhook(bot, webhook_id):
@@ -407,16 +411,28 @@ class LinkConverter(commands.Cog):
 
             return processed_message
 
-        if g_settings.get("translate", {}).get("toggle", False):
-            pattern = r"/status/(\d+)"
-            for link in domain_urls:
-                match = re.search(pattern, link)
-                if match:
-                    status_number = match.group(1)
-                    converted_url = f"https://fxtwitter.com/i/status/{status_number}/{g_settings['translate']['language']}"
-                    processed_message = processed_message.replace(link, converted_url)
-            return processed_message
-            
+        # Fallback
+        translate_toggle = g_settings.get("translate", {}).get("toggle", False)
+        target_lang = g_settings.get("translate", {}).get("language", "en")
+        
+        for url in domain_urls:
+            if url in processed_message:
+                target_domain = g_settings.get("conversion", {}).get("twitter.com", "fxtwitter.com")
+                # Handle both twitter.com and x.com
+                current_domain = "x.com" if "x.com" in url else "twitter.com"
+                
+                if translate_toggle:
+                    match = re.search(r"/status/(\d+)", url)
+                    if match:
+                        new_url = f"https://{target_domain}/i/status/{match.group(1)}/{target_lang}"
+                    else:
+                        new_url = url.replace(current_domain, target_domain)
+                else:
+                    new_url = url.replace(current_domain, target_domain)
+                    if not new_url.endswith('/'): new_url += '/'
+
+                processed_message = processed_message.replace(url, new_url)
+
         return processed_message
 
 
